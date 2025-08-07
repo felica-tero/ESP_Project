@@ -10,6 +10,7 @@ idf_component_register(
 			"dateTimeNTP.c"
 			"otaUpdate.c"
 			"nvsApp.c"
+    		"displayOled.c"
     INCLUDE_DIRS	"."
     EMBED_FILES	"webPage/app.css"
     			"webPage/app.js"
