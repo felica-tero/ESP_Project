@@ -8,6 +8,7 @@ idf_component_register(
     		"httpServer.c"
     		"router.c"
 			"dateTimeNTP.c"
+    		"displayOled.c"
     INCLUDE_DIRS	"."
     EMBED_FILES	"webPage/app.css"
     			"webPage/app.js"

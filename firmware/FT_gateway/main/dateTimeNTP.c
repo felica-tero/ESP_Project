@@ -20,6 +20,7 @@
 #include "dateTimeNTP.h"
 #include "tasks_common.h"
 #include "wifiApp.h"
+#include "displayOled.h"
 
 
 
@@ -90,7 +91,7 @@ static void dateTimeNTP_update_task(void *pvParameter)
     for(;;)
 	{
         ntp_fetchData();
-		// displayOled_printDateTime(date_str, time_str);
+		displayOled_printDateTime(date_str, time_str);
         vTaskDelay(30000 / portTICK_PERIOD_MS); // Sync every 30 seconds
     }
 }
