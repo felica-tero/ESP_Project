@@ -134,6 +134,12 @@ static void httpServer_freeRTOS_monitor(void * parameter)
 					g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECT_SUCCESS;
 					
 					break;
+
+				case HTTP_WIFI_USER_DISCONNECT:
+					ESP_LOGI(TAG, "HTTP_WIFI_USER_DISCONNECT");
+					
+					g_wifi_connect_status = HTTP_WIFI_STATUS_DISCONNECTED;
+					break;
 					
 				case HTTP_WIFI_CONNECT_FAIL:
 					ESP_LOGI(TAG, "HTTP_WIFI_CONNECT_FAIL");

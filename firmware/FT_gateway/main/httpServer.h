@@ -38,7 +38,8 @@
 #define X_MACRO_HTTP_SERVER_STATE_LIST	\
 	X(0, HTTP_WIFI_CONNECT_INIT			) \
 	X(1, HTTP_WIFI_CONNECT_SUCCESS		) \
-	X(2, HTTP_WIFI_CONNECT_FAIL			)
+	X(2, HTTP_WIFI_CONNECT_FAIL			) \
+	X(3, HTTP_WIFI_USER_DISCONNECT)
 
 /**
  * @brief Creating Routes with X_MACRO
@@ -65,6 +66,7 @@ typedef enum http_server_wifi_connect_status
 	HTTP_WIFI_STATUS_CONNECTING,
 	HTTP_WIFI_STATUS_CONNECT_FAILED,
 	HTTP_WIFI_STATUS_CONNECT_SUCCESS,
+	HTTP_WIFI_STATUS_DISCONNECTED,
 } http_server_wifi_connect_status_e;
 
 /**
