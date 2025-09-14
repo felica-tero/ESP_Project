@@ -1,3 +1,15 @@
+/**
+ * @file dateTimeNTP.h
+ * @author your name (you@domain.com)
+ * @brief 
+ * @details
+ * @version 0.1
+ * @date 2025-05-21
+ * 
+ * @copyright Public Domain (or CC0 licensed, at your option.) 2025
+ * 
+ */
+
 #ifndef __DATE_TIME_NTP_LIB__
 #define __DATE_TIME_NTP_LIB__
 
@@ -53,8 +65,24 @@ typedef struct
 **		FUNCTIONS		 **
 **************************/
 
+/**
+ * @brief Set the wifi connected event callback function for NTP date and time queries
+ * 
+ */
 void dateTimeNTP_setup(void);
+
+/**
+ * @brief Get the last updated Time stored from ntp server
+ * 
+ * @return char* 
+ */
 char* dateTimeNTP_getTime(void);
+
+/**
+ * @brief Get the last updated Date stored from ntp server
+ * 
+ * @return char* 
+ */
 char* dateTimeNTP_getData(void);
 
 #endif //__DATE_TIME_NTP_LIB__

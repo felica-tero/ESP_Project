@@ -1,8 +1,9 @@
-/*
- * tasks_common.h
- *
- *  Created on: 16 de nov. de 2024
- *      Author: Luiz Carlos
+/**
+ * @file tasks_common.h
+ * @brief 
+ * @details
+ * @date 16 de nov. de 2024
+ * @author Luiz Carlos
  */
 
 #ifndef MAIN_TASKS_COMMON_H_
