@@ -7,3 +7,6 @@ sdkconfig.old
 .cproject
 .project
 .settings/*
+
+#vscode
+.vscode/*

@@ -1,5 +1,12 @@
 /**
- * Application Entry Point.
+ * @file main.c
+ * @author your name (you@domain.com)
+ * @brief Application Entry Point.
+ * @version 0.1
+ * @date 2025-05-21
+ * 
+ * @copyright Copyright (c) 2025
+ * 
  */
 
 /**************************

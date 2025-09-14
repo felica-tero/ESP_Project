@@ -1,5 +1,4 @@
 {
-    "files.associations": {
-        "httpserver.h": "c"
-    }
+    "idf.flashType": "UART",
+    "idf.portWin": "COM6"
 }
