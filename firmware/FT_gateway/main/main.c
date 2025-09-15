@@ -22,6 +22,7 @@
 
 // Personal libraries
 #include "ledRGB.h"
+#include "displayOled.h"
 #include "router.h"
 #include "dateTimeNTP.h"
 
@@ -48,6 +49,9 @@ void app_main(void)
 	
 	// Initialize the LEDS
 	ledRGB_ledPWM_init();
+
+	// Initialize the display OLED	
+	displayOled_setup();
 
 	// Web Router
 	router_setup();

@@ -39,4 +39,8 @@
 #define WIFI_PASSWORD_LENGTH	64					// IEEE standard maximum
 #define MAX_CONNECTION_RETRIES	5					// retry numbers on disconnect
 
+// DISPLAY OLED
+#define DISPLAY_OLED_SDA_PIN    17
+#define DISPLAY_OLED_SCL_PIN    18
+
 #endif //__PROJECT_CONFIG_LIB__
