@@ -18,8 +18,6 @@
 #include <stdio.h>
 
 // ESP libraries
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_err.h"
@@ -70,8 +68,6 @@
 /**************************
 **	     FUNCTIONS	     **
 **************************/
-
-void displayOled_loop(void);
 
 void displayOled_setup(void);
 void displayOled_init(void);

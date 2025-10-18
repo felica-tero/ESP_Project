@@ -16,6 +16,9 @@
 #define TRUE    1
 #define FALSE   0
 
+#define HIGH    1
+#define LOW     0
+
 // RGB LED GPIOs
 #define RGB_LED_RED_GPIO	12
 #define RGB_LED_GREEN_GPIO	13
