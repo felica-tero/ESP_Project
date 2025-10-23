@@ -70,7 +70,7 @@ typedef enum http_server_wifi_connect_status
 } http_server_wifi_connect_status_e;
 
 /**
- * Messages for the HTTP monitor
+ * Enum for the HTTP monitor
  */
 typedef enum http_server_state
 {

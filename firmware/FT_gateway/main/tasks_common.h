@@ -34,4 +34,9 @@
 #define NTP_DATE_TIME_TASK_PRIORITY     4
 #define NTP_DATE_TIME_TASK_CORE_ID		1
 
+// Piepework Task
+#define PIPEWORK_TASK_STACK_SIZE		1024
+#define PIPEWORK_TASK_PRIORITY		    6
+#define PIPEWORK_TASK_CORE_ID		    0
+
 #endif /* MAIN_TASKS_COMMON_H_ */
