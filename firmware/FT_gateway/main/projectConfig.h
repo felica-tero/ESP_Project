@@ -45,5 +45,12 @@
 // DISPLAY OLED
 #define DISPLAY_OLED_SDA_PIN    17
 #define DISPLAY_OLED_SCL_PIN    18
+#define DISPLAY_OLED_PRESENT    FALSE
+
+// DIGITAL OUTPUTS
+#define DIG_OUT_0       4
+#define DIG_OUT_1       5
+#define DIG_OUT_2       6
+#define DIG_OUT_3       7
 
 #endif //__PROJECT_CONFIG_LIB__

@@ -61,6 +61,7 @@ typedef struct dig_out_info_s
  * the GPIO for each color, mode and timer configuration.
  */
 void hal_gpio_init(void);
+uint8_t hal_gpio_set(pin, TRUE);
 
 
 #endif /* HAL_GPIO_H_ */

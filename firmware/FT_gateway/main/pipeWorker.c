@@ -22,82 +22,17 @@
 
 	/* Variables */
 
+// Array of pipework states, initiated in state CLOSE
+#define X(id, pipe,	pin, output_type, initial_value) CLOSE, 
+pipeWork_state pipeworker_arrayOfStates[] = {X_MACRO_VALVE_STATE_LIST}
+#undef X
 
 	/* FreeRTOS Structures */
 
 // Semaphore handle
 SemaphoreHandle_t pipework_semaphore = NULL;
 
-// Irrigation Ctrl monitor task handle
-static TaskHandle_t task_pipeWorker_monitor = NULL;
-
-// Queue handle used to manipulate the main queue of events
-static QueueHandle_t pipeWorker_monitor_queue_handle;
-
-
 	/* Static Functions */
-
-
-/**************************
-**	FreeRTOS FUNCTIONS	 **
-**************************/
-
-/**
- * @brief Dut Ctrl monitor task used to track events of the Irrigation Ctrl
- * @param pvParameters parameter which can be passed to the task.
- */
-static void pipeWorker_freeRTOS_monitor(void * parameter)
-{
-	http_server_queue_message_t msg;
-	
-	for(;;)
-	{
-		if(xQueueReceive(pipeWorker_monitor_queue_handle, &msg, portMAX_DELAY))
-		{
-			// get resource semaphore
-
-			// open valve
-
-		}
-	}
-}
-
-/**
- * Setup the FreeRTOS environment for HTTP server.
- */
-static void pipeWorker_freeRTOS_setup(void)
-{
-	// Create HTTP server monitor task
-	xTaskCreatePinnedToCore(&pipeWorker_freeRTOS_monitor,
-							"pipeWorker_monitor",
-							PIPEWORKER_MONITOR_STACK_SIZE,
-							NULL,
-							PIPEWORKER_MONITOR_PRIORITY,
-							&task_http_server_monitor,
-							PIPEWORKER_MONITOR_CORE_ID);
-	
-	// Create the message queue
-	pipeWorker_monitor_queue_handle = xQueueCreate(3, sizeof(http_server_queue_message_t));
-}
-
-static void pipeWorker_freeRTOS_endTask(void)
-{
-	if(task_http_server_monitor)
-	{
-		vTaskDelete(task_http_server_monitor);
-		ESP_LOGI(TAG, "pipeWorker_freeRTOS_endTask: stopping HTTP server monitor");
-		task_http_server_monitor = NULL;
-	}
-}
-
-// Sends a message to the queue
-BaseType_t pipeWorker_monitor_sendMessage(pipeWork_id_e msgId)
-{
-	pipework_to_irrigate_queue_message_t msg;
-	msg.msgId = msgId;
-	return xQueueGenericSend(pipeWorker_monitor_queue_handle, &msg, portMAX_DELAY, queueSEND_TO_BACK );
-}
-
 
 
 /**************************
@@ -106,24 +41,33 @@ BaseType_t pipeWorker_monitor_sendMessage(pipeWork_id_e msgId)
 
 void pipeWorker_setup(void)
 {
+	// hal_gpio_init(pins);
 
+	// Create semaphore
+	pipework_semaphore = xSemaphoreCreateBinary();
 }
 
 
 pipeWork_state_e pipeWorker_openValveQueue(uint8_t pipeworkId)
 {
+	// get resource semaphore
+	if (xSemaphoreTake(pipework_semaphore, portMAX_DELAY) == pdTRUE)
+	{
+		// open valve
+		// hal_gpio_set(pin, TRUE);
+		pipeworker_arrayOfStates[msg.msgId] = OPEN;
+	}
+	return pipeworker_arrayOfStates[msg.msgId];
 }
 
 
 pipeWork_state_e pipeWorker_closeValve(uint8_t pipeworkId)
 {
-	// close valve
-
-	// devolve semaphore
-}
-
-
-void pipeWorker_loop(void)
-{
-
+	// check if it is this valve that is opened
+	if(pipeworker_arrayOfStates[msg.msgId] == OPEN)
+	{
+		// devolve semaphore
+		pipeworker_arrayOfStates[msg.msgId] = CLOSE;
+		xSemaphoreGive(pipeworker_arrayOfStates);
+	}
 }

@@ -1,6 +1,7 @@
 #ESP-IDF
 build/
-sdkconfig.*
+sdkconfig.old
+sdkconfig
 .metadata/
 managed_components/
 dependencies.lock

@@ -38,20 +38,10 @@
 	X(3, PIPE_3, DIG_OUT_3, PULL_UP, LOW)
 // 	X(id, pipe,	pin, output_type, initial_value)
 
-
-/**
- * @brief List used to create all the structures for the Irrigation state machine
- * based on X definition
- * @details
- */
-#define X_MACRO_VALVE_STATE_LIST \
-	X(0, OPEN     ) \
-	X(1, AWAITING   ) \
-	X(2, CLOSE       ) \
-	X(3, ERROR      )
-//  X(enum, PIPE_STATE)
-
-
+// QTY of DIG_OUT pins
+#define X(id, pipe,	pin, output_type, initial_value) +1
+#define QTD_DIG_OUTS 	0 X_MACRO_PIPE_LIST
+#undef X
 
 
 /**************************
@@ -63,9 +53,9 @@
  */
 typedef enum pipeWork_state
 {
-	#define X(ID, ENUM) ENUM=ID, 
-		X_MACRO_VALVE_STATE_LIST
-	#undef X
+	OPEN=0,
+	CLOSE,
+	ERROR,
 } pipeWork_state_e;
 
 /**
