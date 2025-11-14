@@ -420,13 +420,12 @@ void wifiApp_start(void)
 	wifi_app_event_group = xEventGroupCreate();
 	
 	// Start the WiFi application task
-	xTaskCreatePinnedToCore(	&wifiApp_task,
-								"wifiApp_task",
-								WIFI_APP_TASK_STACK_SIZE,
-								NULL,
-								WIFI_APP_TASK_PRIORITY,
-								NULL,
-								WIFI_APP_TASK_CORE_ID);
+	xTaskCreate(&wifiApp_task,
+				"wifiApp_task",
+				WIFI_APP_TASK_STACK_SIZE,
+				NULL,
+				WIFI_APP_TASK_PRIORITY,
+				NULL);
 							
 }
 

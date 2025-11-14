@@ -112,13 +112,12 @@ static void dateTimeNTP_wifiApp_connectedEvents(void)
 	ESP_LOGI(TAG, "WiFi Application Connected!");
 
 	// Start the fetch dateTime Task
-	xTaskCreatePinnedToCore(	&dateTimeNTP_update_task,
-								"router_fetchDateTime",
-								NTP_DATE_TIME_TASK_STACK_SIZE,
-								NULL,
-								NTP_DATE_TIME_TASK_PRIORITY,
-								NULL,
-								NTP_DATE_TIME_TASK_CORE_ID);
+	xTaskCreate(&dateTimeNTP_update_task,
+                "router_fetchDateTime",
+                NTP_DATE_TIME_TASK_STACK_SIZE,
+                NULL,
+                NTP_DATE_TIME_TASK_PRIORITY,
+				NULL);
 }
 
 static void dateTimeNTP_update_task(void *pvParameter)

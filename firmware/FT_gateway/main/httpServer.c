@@ -160,13 +160,12 @@ static void httpServer_freeRTOS_monitor(void * parameter)
 static void httpServer_freeRTOS_setup(void)
 {
 	// Create HTTP server monitor task
-	xTaskCreatePinnedToCore(&httpServer_freeRTOS_monitor,
-							"httpServer_monitor",
-							HTTP_SERVER_MONITOR_STACK_SIZE,
-							NULL,
-							HTTP_SERVER_MONITOR_PRIORITY,
-							&task_http_server_monitor,
-							HTTP_SERVER_MONITOR_CORE_ID);
+	xTaskCreate(&httpServer_freeRTOS_monitor,
+				"httpServer_monitor",
+				HTTP_SERVER_MONITOR_STACK_SIZE,
+				NULL,
+				HTTP_SERVER_MONITOR_PRIORITY,
+				NULL);
 	
 	// Create the message queue
 	http_server_monitor_queue_handle = xQueueCreate(3, sizeof(http_server_queue_message_t));
@@ -221,11 +220,6 @@ BaseType_t httpServer_monitor_sendMessage(http_server_state_e msgId)
  */
 static void httpServer_configure(httpd_config_t * config)
 {	 
-//	 *config = HTTPD_DEFAULT_CONFIG();
-	
-	// The core that the HTTP server will run on
-	config->core_id = HTTP_SERVER_TASK_CORE_ID;
-	
 	// Adjust the default priority to 1 less than the WiFi application task
 	config->task_priority = HTTP_SERVER_TASK_PRIORITY;
 	

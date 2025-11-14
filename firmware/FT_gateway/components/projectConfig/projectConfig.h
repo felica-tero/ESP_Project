@@ -52,5 +52,7 @@
 #define DIG_OUT_1       5
 #define DIG_OUT_2       6
 #define DIG_OUT_3       7
+// QTY of DIG_OUT pins
+#define QTD_DIG_OUTS 	4
 
 #endif //__PROJECT_CONFIG_LIB__

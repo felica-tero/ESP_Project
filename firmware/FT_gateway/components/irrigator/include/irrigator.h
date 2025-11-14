@@ -1,8 +1,5 @@
-#ifndef __IRRIGATOR_PERSONAL_LIB__
-#define __IRRIGATOR_PERSONAL_LIB__
-
 /**
- * @file dateTimeNTP.c
+ * @file irrigator.h
  * @author Isabella Vecchi Ferreira
  * @brief
  * @details
@@ -10,6 +7,9 @@
  * @date 2025-10-18
  * 
  */
+
+#ifndef __IRRIGATOR_PERSONAL_LIB__
+#define __IRRIGATOR_PERSONAL_LIB__
 
 
 /**************************
@@ -24,23 +24,21 @@
 
 // Personal libraries
 #include "pipeWorker.h"
+#include "tasks_common.h"
+#include "uart_sensorUmidity.h"
 
 
 
 /**************************
 **		DEFINITIONS		 **
 **************************/
-
 /**
  * @brief Creating Irrigator State list with X_MACRO 
  * 
  */
 #define X_MACRO_IRRIGATION_STATE_LIST	\
 	X(0, FULL_IRRIGATION				) \
-	X(1, LITTLE_IRRIGATION				) \
-	X(2, ENQUEUE_IRRIGATION				) \
-	X(3, AWAIT							) \
-	X(4, STOP							)
+	X(1, LITTLE_IRRIGATION				) 
 
 
 /**************************
@@ -53,22 +51,9 @@
 typedef enum irrigation_state
 {
 	#define X(ID, ENUM) ENUM=ID, 
-		X_MACRO_HTTP_SERVER_STATE_LIST
+		X_MACRO_IRRIGATION_STATE_LIST
 	#undef X
 } irrigation_state_e;
-
-/**
- * ENUM for the SOIL STATE
- */
-typedef enum soil_state
-{
-	DRY_SOIL=0,
-	EXTREME_DRY_SOIL=0,
-	AWAITING_TO_IRRIGATE,
-	IRRIGATING,
-	MOIST_SOIL,
-} soil_state_e;
-
 
 /**
  * ENUM for the WEATHER STATE
@@ -92,7 +77,7 @@ typedef struct pipework_to_irrigate_queue_message_s
 /**************************
 **		FUNCTIONS		 **
 **************************/
-
-
+void irrigator_setup(void);
+BaseType_t irrigator_monitor_sendMessage(pipeWork_id_e pipeWork_id);
 
 #endif //__IRRIGATOR_PERSONAL_LIB__

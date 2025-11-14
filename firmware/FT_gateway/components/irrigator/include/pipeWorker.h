@@ -21,6 +21,8 @@
 
 // ESP libraries
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 // Personal libraries
 #include "projectConfig.h"
@@ -31,18 +33,15 @@
 /**************************
 **		DEFINITIONS		 **
 **************************/
-#define X_MACRO_PIPE_LIST			 	\
-	X(0, PIPE_0, DIG_OUT_0, PULL_UP, LOW)\
-	X(1, PIPE_1, DIG_OUT_1, PULL_UP, LOW)\
-	X(2, PIPE_2, DIG_OUT_2, PULL_UP, LOW)\
-	X(3, PIPE_3, DIG_OUT_3, PULL_UP, LOW)
+#define PULL_UP		TRUE
+#define PULL_DOWN	FALSE
+
+#define X_MACRO_PIPE_LIST			 				\
+	X(0, PIPE_0, DIG_OUT_0, PULL_UP, PULL_DOWN, LOW)\
+	X(1, PIPE_1, DIG_OUT_1, PULL_UP, PULL_DOWN, LOW)\
+	X(2, PIPE_2, DIG_OUT_2, PULL_UP, PULL_DOWN, LOW)\
+	X(3, PIPE_3, DIG_OUT_3, PULL_UP, PULL_DOWN, LOW)
 // 	X(id, pipe,	pin, output_type, initial_value)
-
-// QTY of DIG_OUT pins
-#define X(id, pipe,	pin, output_type, initial_value) +1
-#define QTD_DIG_OUTS 	0 X_MACRO_PIPE_LIST
-#undef X
-
 
 /**************************
 **		STRUCTURES		 **
@@ -58,33 +57,32 @@ typedef enum pipeWork_state
 	ERROR,
 } pipeWork_state_e;
 
+typedef struct pipeWorker_ctrl_s
+{
+	pipeWork_state_e state;
+	dig_out_info_t config;
+}pipeWorker_ctrl_t;
+
+
 /**
  * ENUM for Pipe ID
  */
 typedef enum pipeWork_id
 {
-	#define X(ID, PIPE, pin, output_type, initial_value) PIPE=ID, 
-		X_MACRO_PIPE_LIST()
+	#define X(ID, PIPE,	pin, pullUp, pullDown, initial_value)\
+			PIPE=ID, 
+		X_MACRO_PIPE_LIST
 	#undef X
 } pipeWork_id_e;
-
-
-/**
- * Structure for the PIPE to irrigate QUEUE
- */
-typedef struct pipework_to_irrigate_queue_message_s
-{
-	pipeWork_id_e msgId;
-} pipework_to_irrigate_queue_message_t;
 
 
 /**************************
 **		FUNCTIONS		 **
 **************************/
 void pipeWorker_setup(void);
-pipeWork_state_e pipeWorker_openValve(uint8_t pipeworkId);
-pipeWork_state_e pipeWorker_closeValve(uint8_t pipeworkId);
-void pipeWorker_loop(void);
+pipeWork_state_e pipeWorker_askToOpenValve(uint8_t pipeworkId);
+void pipeWorker_closeValve(uint8_t pipeworkId);
+pipeWork_state_e pipeWorker_getState(uint8_t pipeworkId);
 
 
 

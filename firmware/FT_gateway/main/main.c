@@ -28,6 +28,7 @@
 #include "displayOled.h"
 #include "router.h"
 #include "dateTimeNTP.h"
+#include "irrigator.h"
 
 
 /**************************
@@ -78,6 +79,9 @@ void app_main(void)
 	// NTP clock setup
 	dateTimeNTP_setup();
 
+	// Irrigator setup
+	irrigator_setup();
+
 	// Main Infinite Loop
 	mainLoop_task();
 }
@@ -104,11 +108,10 @@ static void mainLoop_task(void)
 	ESP_LOGI(TAG, "Infinite Loop State");
 
 	// Start the fetch dateTime Task
-	xTaskCreatePinnedToCore(	&vTaskLoop,
-								"main_loop",
-								MAIN_LOOP_TASK_STACK_SIZE,
-								NULL,
-								MAIN_LOOP_TASK_PRIORITY,
-								NULL,
-								MAIN_LOOP_TASK_CORE_ID);
+	xTaskCreate(&vTaskLoop,
+				"main_loop",
+				MAIN_LOOP_TASK_STACK_SIZE,
+				NULL,
+				MAIN_LOOP_TASK_PRIORITY,
+				NULL);
 }
