@@ -45,6 +45,11 @@ void irrigator_setup(void)
 {
 	pipeWorker_setup();
 	irrigator_freeRTOS_setup();
+	
+	ESP_LOGI(TAG, "tenta abrir o 0: [%d]", (uint8_t)irrigator_monitor_sendMessage(0));
+	ESP_LOGI(TAG, "tenta abrir o 1: [%d]", (uint8_t)irrigator_monitor_sendMessage(1));
+	ESP_LOGI(TAG, "tenta abrir o 2: [%d]", (uint8_t)irrigator_monitor_sendMessage(2));
+	ESP_LOGI(TAG, "tenta abrir o 3: [%d]", (uint8_t)irrigator_monitor_sendMessage(3));
 }
 
 /**
@@ -53,12 +58,17 @@ void irrigator_setup(void)
 static void irrigator_freeRTOS_setup(void)
 {
 	// Create HTTP server monitor task
-	xTaskCreate(&irrigator_freeRTOS_monitor,
+	CREATE_TASK(&irrigator_freeRTOS_monitor,
 				"irrigator_monitor",
 				IRRIGATOR_MONITOR_STACK_SIZE,
 				NULL,
 				IRRIGATOR_MONITOR_PRIORITY,
+#if defined BOARD_ESP32C6
 				NULL);
+#elif defined BOARD_ESP32S3
+				NULL,
+				IRRIGATOR_MONITOR_CORE);
+#endif
 	
 	// Create the message queue
 	irrigator_monitor_queue_handle = xQueueCreate(QTD_DIG_OUTS, sizeof(pipework_to_irrigate_queue_message_t));
@@ -187,10 +197,17 @@ static void irrigator_freeRTOS_monitor(void * parameter)
 	{
 		if(xQueueReceive(irrigator_monitor_queue_handle, &msg, portMAX_DELAY))
 		{
+			ESP_LOGI(TAG, "quem quer abrir eh esse: pipeId[%d]", msg.msgId);
 			// request resource semaphore
 			while(OPEN != pipeWorker_askToOpenValve(msg.msgId));
 
+			ESP_LOGI(TAG, "Abriu pipeId[%d]", msg.msgId);
+			vTaskDelay(pdMS_TO_TICKS(2000));
+			ESP_LOGI(TAG, "Aguardou...");
+			
 			// open valve
+			pipeWorker_closeValve(msg.msgId);
+			ESP_LOGI(TAG, "Fechou pipeId[%d]", msg.msgId);
 
 		}
 	}

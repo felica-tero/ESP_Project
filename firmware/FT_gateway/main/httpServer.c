@@ -159,14 +159,21 @@ static void httpServer_freeRTOS_monitor(void * parameter)
  */
 static void httpServer_freeRTOS_setup(void)
 {
+	ESP_LOGI(TAG, "httpServer_start: Before CREATE_TASK");
 	// Create HTTP server monitor task
-	xTaskCreate(&httpServer_freeRTOS_monitor,
+	CREATE_TASK(&httpServer_freeRTOS_monitor,
 				"httpServer_monitor",
 				HTTP_SERVER_MONITOR_STACK_SIZE,
 				NULL,
 				HTTP_SERVER_MONITOR_PRIORITY,
+#if defined BOARD_ESP32C6
 				NULL);
+#elif defined BOARD_ESP32S3
+				NULL,
+				HTTP_SERVER_MONITOR_CORE);
+#endif
 	
+	ESP_LOGI(TAG, "httpServer_start: Before xQueueCreate");
 	// Create the message queue
 	http_server_monitor_queue_handle = xQueueCreate(3, sizeof(http_server_queue_message_t));
 }

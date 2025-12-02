@@ -21,6 +21,7 @@
 **************************/
 
 	/* Variables */
+static const char TAG[] = "pipework";
 
 // Array of pipework struct
 static pipeWorker_ctrl_t pipeworker[] = {0};
@@ -48,6 +49,7 @@ void pipeWorker_setup(void)
 
 	// Create semaphore
 	pipework_semaphore = xSemaphoreCreateBinary();
+	xSemaphoreGive(pipework_semaphore);
 }
 
 
@@ -60,9 +62,11 @@ pipeWork_state_e pipeWorker_getState(uint8_t pipeworkId)
 pipeWork_state_e pipeWorker_askToOpenValve(uint8_t pipeworkId)
 {
 	// get resource semaphore
+		ESP_LOGI(TAG, "pediu para abrir esse: pipeId[%d]", pipeworkId);
 	if (xSemaphoreTake(pipework_semaphore, portMAX_DELAY) == pdTRUE)
 	{
 		// open valve
+		ESP_LOGI(TAG, "abriu esse: pipeId[%d]", pipeworkId);
 		hal_gpio_setOutput(pipeworker[pipeworkId].config.gpio_pin, HIGH);
 		pipeworker[pipeworkId].state = OPEN;
 	}
@@ -76,7 +80,8 @@ void pipeWorker_closeValve(uint8_t pipeworkId)
 	if(pipeworker[pipeworkId].state == OPEN)
 	{
 		// devolve semaphore
-		hal_gpio_setOutput(pipeworker[pipeworkId].config.gpio_pin, LOW);
+		ESP_LOGI(TAG, "desligar a valvula deu certo? %s", \
+		hal_gpio_setOutput(pipeworker[pipeworkId].config.gpio_pin, LOW) ? "sim" : "nao");
 		pipeworker[pipeworkId].state = CLOSE;
 		xSemaphoreGive(pipework_semaphore);
 	}

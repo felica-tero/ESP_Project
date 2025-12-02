@@ -25,7 +25,9 @@
 // Personal libraries
 #include "tasks_common.h"
 #include "ledRGB.h"
+#if DISPLAY_OLED_PRESENT == TRUE
 #include "displayOled.h"
+#endif
 #include "router.h"
 #include "dateTimeNTP.h"
 #include "irrigator.h"
@@ -108,10 +110,15 @@ static void mainLoop_task(void)
 	ESP_LOGI(TAG, "Infinite Loop State");
 
 	// Start the fetch dateTime Task
-	xTaskCreate(&vTaskLoop,
+	CREATE_TASK(&vTaskLoop,
 				"main_loop",
 				MAIN_LOOP_TASK_STACK_SIZE,
 				NULL,
 				MAIN_LOOP_TASK_PRIORITY,
+#if defined BOARD_ESP32C6
 				NULL);
+#elif defined BOARD_ESP32S3
+				NULL,
+				MAIN_LOOP_TASK_CORE);
+#endif
 }

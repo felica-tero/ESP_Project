@@ -420,13 +420,17 @@ void wifiApp_start(void)
 	wifi_app_event_group = xEventGroupCreate();
 	
 	// Start the WiFi application task
-	xTaskCreate(&wifiApp_task,
+	CREATE_TASK(&wifiApp_task,
 				"wifiApp_task",
 				WIFI_APP_TASK_STACK_SIZE,
 				NULL,
 				WIFI_APP_TASK_PRIORITY,
+#if defined BOARD_ESP32C6
 				NULL);
-							
+#elif defined BOARD_ESP32S3
+				NULL,
+				WIFI_APP_TASK_CORE);
+#endif
 }
 
 
