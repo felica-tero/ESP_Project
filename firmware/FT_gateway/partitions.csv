@@ -1,8 +1,9 @@
 # Name,   Type, SubType, Offset,  Size
 # Note: if you have increased the bootloader size, make sure to update the offsets to avoid overlap
-nvs,      data, nvs,           ,  0x5000
+nvs,      data, nvs,           ,  0x4000
+otadata,  data, ota,     ,        0x2000,
 phy_init, data, phy,           ,  0x1000
-factory,  app,  factory,       ,  0x200000
-coredump, data, coredump,      ,  0x1000
+ota_0,    app,  ota_0,   ,        1984K,
+ota_1,    app,  ota_1,   ,        1984K,
 
 # https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html

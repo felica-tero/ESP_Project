@@ -1,8 +1,9 @@
-/*
- * router.c
- *
- *  Created on: 17 de nov. de 2024
- *      Author: Luiz Carlos
+/**
+ * @file router.c
+ * @brief 
+ * @details
+ * @date 17 de nov. de 2024
+ * @author Luiz Carlos
  */
 
 
@@ -28,6 +29,7 @@
 
 // Personal libraries
 #include "httpServer.h"
+#include "otaUpdate.h"
 #include "router.h"
 
 
@@ -57,6 +59,8 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_json)(httpd_req_t *r
 static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_status_json)(httpd_req_t *req);
 static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(get_wifi_connect_info_json)(httpd_req_t *req);
 static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_disconnect_json)(httpd_req_t *req);
+esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_update_handler)(httpd_req_t *req);
+esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_status_handler)(httpd_req_t *req);
 static void router_uri_register(void);
 
 
@@ -82,6 +86,73 @@ void router_setup(void)
 /**************************
 **	 HANDLER FUNCTIONS 	 **
 **************************/
+
+/**
+ * Receives the .bin file fia the web page and handles the firmware update
+ * @param req HTTP request for which the uri needs to be handled.
+ * @return ESP_OK, otherwise ESP_FAIL if timeout occurs and the update cannot be started.
+ */
+esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_update_handler)(httpd_req_t *req)
+{
+    esp_ota_handle_t ota_handle;
+    char ota_buff[1024];
+    int content_length = req->content_len;
+    int content_received = 0;
+    int recv_len;
+    bool is_req_body_started = false;
+    bool flash_successful = false;
+
+    const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
+
+    do {
+        recv_len = httpd_req_recv(req, ota_buff, MIN(content_length, sizeof(ota_buff)));
+        if (recv_len < 0) {
+            if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
+                ESP_LOGI(TAG, "Socket Timeout");
+                continue;
+            }
+            ESP_LOGI(TAG, "OTA other Error %d", recv_len);
+            return ESP_FAIL;
+        }
+        ESP_LOGI(TAG, "OTA RX: %d of %d", content_received, content_length);
+
+        esp_err_t err;
+        if (!is_req_body_started) {
+            is_req_body_started = true;
+            ESP_LOGI(TAG, "OTA file size: %d", content_length);
+            err = ota_process_first_chunk(ota_buff, recv_len, &content_received, &ota_handle, update_partition);
+        } else {
+            err = ota_process_next_chunk(ota_buff, recv_len, &content_received, ota_handle);
+        }
+        if (err != ESP_OK) return ESP_FAIL;
+
+    } while (recv_len > 0 && content_received < content_length);
+
+    flash_successful = ota_finalize_and_set_boot(ota_handle, update_partition);
+    ota_update_status(flash_successful);
+
+    return ESP_OK;
+}
+
+/**
+ * OTA status handler responds with the firmware update status after the OTA update is started
+ * 
+ * and responds with the compile time/date when the page is first requested
+ * @param req HTTP request for which the uri needs to be handled
+ * @return ESP_OK
+ */
+esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_status_handler)(httpd_req_t *req)
+{
+	char otaJSON[100];
+	ESP_LOGI(TAG, "OTAstatus requested");
+
+	sprintf(otaJSON, "{\"ota_update_status\":%d,\"compile_time\":\"%s\",\"compile_date\":\"%s\"}", g_fw_update_status, __TIME__, __DATE__);
+
+	httpd_resp_set_type(req, "application/json");
+	httpd_resp_send(req, otaJSON, strlen(otaJSON));
+
+	return ESP_OK;
+}
 
 /**
  * wifiConnect.json handler is invoked after the connect button is pressed

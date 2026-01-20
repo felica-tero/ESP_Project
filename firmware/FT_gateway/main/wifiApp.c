@@ -1,8 +1,9 @@
-/*
- * wifiApp.c
- *
- *  Created on: 16 de nov. de 2024
- *      Author: Luiz Carlos
+/**
+ * @file wifiApp.c
+ * @brief 
+ * @details
+ * @date 16 de nov. de 2024
+ * @author Luiz Carlos
  */
 
 
@@ -39,6 +40,7 @@
 #include "httpServer.h"
 #include "ledRGB.h"
 #include "tasks_common.h"
+#include "nvsApp.h"
 
 
 /**************************
@@ -62,6 +64,16 @@ wifi_config_t wifi_config_v;
 
 // Used to track the number for retries when a connectiona attempt fails
 static uint8_t g_retry_number;
+
+/**
+ * @brief WiFi application event group handle and status bits
+ */
+static EventGroupHandle_t wifi_app_event_group;
+const int WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT			= BIT0;
+const int WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT			= BIT1;
+const int WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT		= BIT2;
+
+EventBits_t eventBits;
 
 // Netif objects for the station and access point
 esp_netif_t * esp_netif_sta = NULL;
@@ -104,29 +116,23 @@ static void wifiApp_task(void * pvParameters);
 **		  GETTERS		 **
 **************************/
 
-/**
- * Returns the Address of the first char of SSID string
- */
+// Returns the Address of the first char of SSID string
 char * wifiApp_getStationSSID(void)
 {
 	return ssid;
 }
 
-/**
- * Returns the Address of the first char of password string
- */
+// Returns the Address of the first char of password string
 char * wifiApp_getStationPassword(void)
 {
 	return passwd;
 }
 
-/**
- * Returns the WiFi configuration Address
- */
- wifi_config_t * wifiApp_getWifiConfig(void)
- {
-	 return &wifi_config_v;
- }
+// Returns the WiFi configuration Address
+wifi_config_t * wifiApp_getWifiConfig(void)
+{
+	return &wifi_config_v;
+}
 
 
 
@@ -134,10 +140,11 @@ char * wifiApp_getStationPassword(void)
 **		APP FUNCTIONS	 **
 **************************/
 
- /**
-  * function that sets up the WiFi environment
-  * configurating WiFi & Soft Access and initializing TCP/IP
-  */
+/**
+ * @brief function that sets up the WiFi environment
+ * configurating WiFi & Soft Access and initializing TCP/IP
+ * @details
+ */
 static void wifiApp_setup(void)
 {
 	// Initialize the event handler
@@ -150,9 +157,7 @@ static void wifiApp_setup(void)
 	wifiApp_softAP_config();
 }
 
-/**
-* Sets the callback function
-*/
+// Sets the callback function
 void wifiApp_setCallback(wifi_connected_event_callback_t callbackFunction)
 {
 	 wifi_connected_event_cb = callbackFunction;
@@ -165,9 +170,10 @@ void wifiApp_setCallback(wifi_connected_event_callback_t callbackFunction)
 **************************/
 
 /**
- * State Machine Function Definition according to sm_wifi_app_function
+ * @brief State Machine Function Definition according to sm_wifi_app_function
  * function that defines the behavior on 
  * [WIFI_APP_START_HTTP_SERVER] state
+ * @details
  */
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_START_HTTP_SERVER)(wifi_app_queue_message_t * st)
 {
@@ -178,13 +184,16 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_START_HTTP_SERVER)(wifi_app_queue_mess
 }
 
 /**
- * State Machine Function Definition according to sm_wifi_app_function
+ * @brief State Machine Function Definition according to sm_wifi_app_function
  * function that defines the behavior on
  * [WIFI_APP_CONNECTING_FROM_HTTP_SERVER] state
+ * @details
  */
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_CONNECTING_FROM_HTTP_SERVER)(wifi_app_queue_message_t * st)
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_CONNECTING_FROM_HTTP_SERVER]);
+
+	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT);
 	
 	// Attempt a connection
 	wifiApp_sta_connect();
@@ -197,9 +206,10 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_CONNECTING_FROM_HTTP_SERVER)(wifi_app_
 }
 
 /**
- * State Machine Function Definition according to sm_wifi_app_function
+ * @brief State Machine Function Definition according to sm_wifi_app_function
  * function that defines the behavior on
  * [WIFI_APP_STA_CONNECTED_GOT_IP] state
+ * @details
  */
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_message_t * st)
 {
@@ -209,6 +219,23 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_m
 	// displayOled_printHeaderNBody("CONNECTED!", "");
  	httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_SUCCESS);
 	
+	eventBits = xEventGroupGetBits(wifi_app_event_group);
+
+	// Save Sta creds only if connecting from the http server (not loaded from NVS)
+	if (eventBits & WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT)
+	{
+		// Clear bits, in case we want to disconnect and reconnect, than start again
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT);
+	}
+	else
+	{
+		nvs_app_save_sta_creds();
+	}
+	if(eventBits & WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT)
+	{
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT);
+	}
+
 	if(wifi_connected_event_cb != NULL)
 	{
 		wifi_connected_event_cb();
@@ -216,33 +243,86 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_m
 }
 
 /**
- * State Machine Function Definition according to sm_wifi_app_function
+ * @brief State Machine Function Definition according to sm_wifi_app_function
  * function that defines the behavior on
  * [WIFI_APP_USER_REQUESTED_STA_DISCONNECT] state
+ * @details
  */
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_USER_REQUESTED_STA_DISCONNECT)(wifi_app_queue_message_t * st)
 {
-	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_STA_DISCONNECTED]);
+	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_USER_REQUESTED_STA_DISCONNECT]);
 	
+	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT);
+
  	ledRGB_wifi_disconnect();
 	// so it doesn't try to reconnect when we hit the button disconnect
 	g_retry_number = MAX_CONNECTION_RETRIES;
 	
  	ESP_ERROR_CHECK(esp_wifi_disconnect());
+	nvs_app_clear_sta_creds();
  	ledRGB_wifi_disconnected();
 }
 
 /**
- * State Machine Function Definition according to sm_wifi_app_function
+ * @brief State Machine Function Definition according to sm_wifi_app_function
  * function that defines the behavior on
  * [WIFI_APP_STA_DISCONNECTED] state
+ * @details
  */
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_DISCONNECTED)(wifi_app_queue_message_t * st)
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_STA_DISCONNECTED]);
+
+	eventBits = xEventGroupGetBits(wifi_app_event_group);
+
+	if(eventBits & WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT)
+	{
+		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT USING SAVED CREDENTIALS");
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT);
+		nvs_app_clear_sta_creds();
+	}
+	else if (eventBits & WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT)
+	{
+		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT FROM THE HTTP SERVER");
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT);
+		httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_FAIL);
+	}
+	else if (eventBits & WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT)
+	{
+		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: USER REQUESTED DISCONECTION");
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT);
+		httpServer_monitor_sendMessage(HTTP_WIFI_USER_DISCONNECT);
+	}
+	else
+	{
+		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT FAILED, CHECK WIFI ACESS POINT AVAILABITITY");
+		/// @note Adjust this case to your needs - maybe you want to keep trying to connect...
+	}
 	
  	ledRGB_wifi_disconnected();
- 	httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_FAIL);
+}
+
+/**
+ * @brief State Machine Function Definition according to sm_wifi_app_function
+ * function that defines the behavior on
+ * [WIFI_APP_LOAD_SAVED_CREDENTIALS] state
+ * @details
+ */
+static void WIFI_STATE_FUNC_NAME(WIFI_APP_LOAD_SAVED_CREDENTIALS)(wifi_app_queue_message_t * st)
+{
+	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_LOAD_SAVED_CREDENTIALS]);
+	if (nvs_app_load_sta_creds())
+	{
+		ESP_LOGI(TAG, "Loaded station configuration");
+		wifiApp_sta_connect();
+		xEventGroupSetBits(wifi_app_event_group, WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT);
+	}
+	else
+	{
+		ESP_LOGI(TAG, "Unable to load sation configuration");
+	}
+	// Next, start the web server
+	wifiApp_sendMessage(WIFI_APP_START_HTTP_SERVER);
 }
 
 
@@ -254,6 +334,11 @@ sm_wifi_table_fn_t sm_wifi_state_table[] =
 #undef X
 };
 
+/**
+ * @brief WiFiApp State Machine Handler
+ * @details
+ * @param msg 
+ */
 static void wifiApp_stateMachine_handler(wifi_app_queue_message_t * msg)
 {
 	g_qtd_states = 0;
@@ -279,9 +364,10 @@ static void wifiApp_stateMachine_handler(wifi_app_queue_message_t * msg)
 **************************/
  
 /**
- * Main task for the WiFi application
+ * @brief Main task for the WiFi application
  * where we initialize WiFi and and receive all queue messages
  * which determine the flow of the application
+ * @details
  * @param pvParameters parameter which can be passed to the task
  */
 static void wifiApp_task(void * pvParameters)
@@ -295,16 +381,16 @@ static void wifiApp_task(void * pvParameters)
 	ESP_ERROR_CHECK(esp_wifi_start());
 	
 	// Send first event message
-	wifiApp_sendMessage(WIFI_APP_START_HTTP_SERVER);
+	wifiApp_sendMessage(WIFI_APP_LOAD_SAVED_CREDENTIALS);
 	
 	wifiApp_stateMachine_handler(&msg);
 }
 
+// Sends a message to the queue
+// @param msgId message ID from the wifi_app_message_e enum
+// @return pdTRUE if an item was successfully sent to the queue, otherwise pdFALSE
 /**
- * Sends a message to the queue
- * @param msgId message ID from the wifi_app_message_e enum
- * @return pdTRUE if an item was successfully sent to the queue, otherwise pdFALSE
- * @TODO colocar um enum status pra indicar falha ou sucesso
+ * \todo colocar um enum status pra indicar falha ou sucesso
  */
 BaseType_t wifiApp_sendMessage(sm_wifi_app_state_e msgId)
 {
@@ -313,9 +399,7 @@ BaseType_t wifiApp_sendMessage(sm_wifi_app_state_e msgId)
 	return xQueueGenericSend(wifi_app_queue_handle_t, &msg, portMAX_DELAY, queueSEND_TO_BACK );
 }
 
-/**
- * Starts the WiFi RTOS task
- */
+// Starts the WiFi RTOS task
 void wifiApp_start(void)
 {
 	ESP_LOGI(TAG, "STARTING WIFI APPLICATION");
@@ -331,16 +415,22 @@ void wifiApp_start(void)
 	
 	// Create message queue
 	wifi_app_queue_handle_t = xQueueCreate(3, sizeof(wifi_app_queue_message_t));
+
+	// Create WiFI application event group
+	wifi_app_event_group = xEventGroupCreate();
 	
 	// Start the WiFi application task
-	xTaskCreatePinnedToCore(	&wifiApp_task,
-								"wifiApp_task",
-								WIFI_APP_TASK_STACK_SIZE,
-								NULL,
-								WIFI_APP_TASK_PRIORITY,
-								NULL,
-								WIFI_APP_TASK_CORE_ID);
-							
+	CREATE_TASK(&wifiApp_task,
+				"wifiApp_task",
+				WIFI_APP_TASK_STACK_SIZE,
+				NULL,
+				WIFI_APP_TASK_PRIORITY,
+#if defined BOARD_ESP32C6
+				NULL);
+#elif defined BOARD_ESP32S3
+				NULL,
+				WIFI_APP_TASK_CORE);
+#endif
 }
 
 
@@ -350,7 +440,8 @@ void wifiApp_start(void)
 **************************/
 
 /**
- * WiFi application event handler
+ * @brief WiFi application event handler
+ * @details
  * @param arg_p data, aside from event data, that is passed to the handler when it is called
  * @param event_base the base id of the event to register the handler for
  * @param eventId the id of the event to register the handler for
@@ -427,7 +518,8 @@ void wifiApp_start(void)
  }
 
 /**
- * Initializes the WiFi application event handler for WiFi and IP events.
+ * @brief Initializes the WiFi application event handler for WiFi and IP events.
+ * @details
  */
 static void wifiApp_eventHandler_init(void)
 {
@@ -449,7 +541,8 @@ static void wifiApp_eventHandler_init(void)
 
 
 /**
- * Initializes TCP stack and default WiFi configuration.
+ * @brief Initializes TCP stack and default WiFi configuration.
+ * @details
  */
 static void wifiApp_defaultWifi_init(void)
 {
@@ -466,7 +559,8 @@ static void wifiApp_defaultWifi_init(void)
 
 
 /**
- * Configures the WiFi access point settings and assigns the static IP to the SoftAP.
+ * @brief Configures the WiFi access point settings and assigns the static IP to the SoftAP.
+ * @details
  */
 static void wifiApp_softAP_config(void)
 {
@@ -511,7 +605,8 @@ static void wifiApp_softAP_config(void)
 }
 
 /**
- * Connects the ESP32 to an external AP using the updated station configuration
+ * @brief Connects the ESP32 to an external AP using the updated station configuration
+ * @details
  */
 static void wifiApp_sta_connect(void)
 {
@@ -520,7 +615,9 @@ static void wifiApp_sta_connect(void)
 }
 
 /**
- * A function to log at the serial monitor the reasons of why the station disconnected
+ * @brief A function to log at the serial monitor the reasons of why the station disconnected
+ * @details
+ * @param eventData_p 
  */
 static void wifiApp_sta_disconnectedLogInfo(void * eventData_p)
 {

@@ -1,9 +1,16 @@
 #ESP-IDF
 build/
 sdkconfig.old
+sdkconfig
 .metadata/
+managed_components/
+dependencies.lock
 
 #eclipse
 .cproject
 .project
 .settings/*
+
+#vscode
+.vscode/*
+main/.vscode/

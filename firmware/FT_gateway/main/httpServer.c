@@ -1,8 +1,9 @@
-/*
- * httpServer.c
- *
- *  Created on: 17 de nov. de 2024
- *      Author: Luiz Carlos
+/**
+ * @file httpServer.c
+ * @brief 
+ * @details
+ * @author Luiz Carlos
+ * @date 2024-11-17
  */
 
 /**************************
@@ -66,7 +67,7 @@ static void httpServer_freeRTOS_monitor(void * parameter);
 static void httpServer_freeRTOS_setup(void);
 static void httpServer_freeRTOS_endTask(void);
 
-//App functions
+// App functions
 static void httpServer_configure(httpd_config_t * config);
 static void httpServer_uri_setFilesHandlersAndRoutes(void);
 static void httpServer_uri_setRoutesFromOtherFiles(void);
@@ -77,31 +78,19 @@ static void httpServer_uri_setRoutesFromOtherFiles(void);
 ** UPPERLAYER FUNCTIONS	 **
 **************************/
 
-/*
- * Returns the g_wifi_connect_status
- */
+// Returns the g_wifi_connect_status
 http_server_wifi_connect_status_e * httpServer_get_wifiConnectStatus(void)
 {
 	return &g_wifi_connect_status;
 }
 
-/**
- * Function to get routers from another file to be declared here.
- * Separating the include files routes, from the api ones.
- * @param apiFunction a function from an upper layer, where other
- * uri routes are declared with the httpServer_uri_registerHandler function.
- */
+// Function to get routers from another file to be declared here.
 void httpServer_setApiRoutes(void (*apiFunction)(void))
 {
 	httpServer_uri_setApiRoutes_fp = apiFunction;
 }
 
-/**
- * Function to register an HTTP uri.
- * @param route the http route on the IP server
- * @param method if the route is accessed by GET, POST, PUT...
- * @param handler the function handler that specifies what happens when the route is accessed.
- */
+// Function to register an HTTP uri.
 void httpServer_uri_registerHandler(const char* route, httpd_method_t method, esp_err_t (*handler)(httpd_req_t *req))
 {
 	httpd_uri_t uri_handler = {
@@ -119,7 +108,7 @@ void httpServer_uri_registerHandler(const char* route, httpd_method_t method, es
 **************************/
 
 /**
- * HTTP server monitor task used to track events of the HTTP server
+ * @brief HTTP server monitor task used to track events of the HTTP server
  * @param pvParameters parameter which can be passed to the task.
  */
 static void httpServer_freeRTOS_monitor(void * parameter)
@@ -145,20 +134,18 @@ static void httpServer_freeRTOS_monitor(void * parameter)
 					g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECT_SUCCESS;
 					
 					break;
+
+				case HTTP_WIFI_USER_DISCONNECT:
+					ESP_LOGI(TAG, "HTTP_WIFI_USER_DISCONNECT");
+					
+					g_wifi_connect_status = HTTP_WIFI_STATUS_DISCONNECTED;
+					break;
 					
 				case HTTP_WIFI_CONNECT_FAIL:
 					ESP_LOGI(TAG, "HTTP_WIFI_CONNECT_FAIL");
 					
 					g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECT_FAILED;
 					break;
-					
-//				case HTTP_OTA_UPDATE_SUCCESSFULL:
-//					ESP_LOGI(TAG, "HTTP_OTA_UPDATE_SUCCESSFULL");
-//					break;
-//					
-//				case HTTP_OTA_UPDATE_FAILED:
-//					ESP_LOGI(TAG, "HTTP_OTA_UPDATE_FAILED");
-//					break;
 					
 				default:
 					break;
@@ -172,15 +159,21 @@ static void httpServer_freeRTOS_monitor(void * parameter)
  */
 static void httpServer_freeRTOS_setup(void)
 {
+	ESP_LOGI(TAG, "httpServer_start: Before CREATE_TASK");
 	// Create HTTP server monitor task
-	xTaskCreatePinnedToCore(&httpServer_freeRTOS_monitor,
-							"httpServer_monitor",
-							HTTP_SERVER_MONITOR_STACK_SIZE,
-							NULL,
-							HTTP_SERVER_MONITOR_PRIORITY,
-							&task_http_server_monitor,
-							HTTP_SERVER_MONITOR_CORE_ID);
+	CREATE_TASK(&httpServer_freeRTOS_monitor,
+				"httpServer_monitor",
+				HTTP_SERVER_MONITOR_STACK_SIZE,
+				NULL,
+				HTTP_SERVER_MONITOR_PRIORITY,
+#if defined BOARD_ESP32C6
+				NULL);
+#elif defined BOARD_ESP32S3
+				NULL,
+				HTTP_SERVER_MONITOR_CORE);
+#endif
 	
+	ESP_LOGI(TAG, "httpServer_start: Before xQueueCreate");
 	// Create the message queue
 	http_server_monitor_queue_handle = xQueueCreate(3, sizeof(http_server_queue_message_t));
 }
@@ -195,11 +188,7 @@ static void httpServer_freeRTOS_endTask(void)
 	}
 }
 
-/**
- * Sends a message to the queue
- * @param msgId message ID from the http_server_state_e enum.
- * @return pdTRUE if an item was successfully sent to the queue, otherwise pdFALSE.
- */
+// Sends a message to the queue
 BaseType_t httpServer_monitor_sendMessage(http_server_state_e msgId)
 {
 	http_server_queue_message_t msg;
@@ -238,11 +227,6 @@ BaseType_t httpServer_monitor_sendMessage(http_server_state_e msgId)
  */
 static void httpServer_configure(httpd_config_t * config)
 {	 
-//	 *config = HTTPD_DEFAULT_CONFIG();
-	
-	// The core that the HTTP server will run on
-	config->core_id = HTTP_SERVER_TASK_CORE_ID;
-	
 	// Adjust the default priority to 1 less than the WiFi application task
 	config->task_priority = HTTP_SERVER_TASK_PRIORITY;
 	
@@ -282,9 +266,9 @@ static void httpServer_uri_setRoutesFromOtherFiles(void)
 	}
 }
  
- /**
-  * Starts the HTTP server.
-  */
+/**
+ * Starts the HTTP server.
+ */
 void httpServer_start(void)
 {
 	if (http_server_handle == NULL)
@@ -309,9 +293,9 @@ void httpServer_start(void)
 	}
 }
 
- /**
-  * Stops the HTTP server.
-  */
+/**
+ * Stops the HTTP server.
+ */
 void httpServer_stop(void)
 {
 	if (http_server_handle)
