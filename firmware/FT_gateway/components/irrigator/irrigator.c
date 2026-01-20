@@ -43,8 +43,11 @@ static void irrigator_freeRTOS_monitor(void * parameter);
 
 void irrigator_setup(void)
 {
+	ESP_LOGI(TAG, "pipeWorker_setup");
 	pipeWorker_setup();
+	ESP_LOGI(TAG, "irrigator_freeRTOS_setup");
 	irrigator_freeRTOS_setup();
+	ESP_LOGI(TAG, "enfileira");
 	
 	ESP_LOGI(TAG, "tenta abrir o 0: [%d]", (uint8_t)irrigator_monitor_sendMessage(0));
 	ESP_LOGI(TAG, "tenta abrir o 1: [%d]", (uint8_t)irrigator_monitor_sendMessage(1));
@@ -57,6 +60,12 @@ void irrigator_setup(void)
  */
 static void irrigator_freeRTOS_setup(void)
 {
+	ESP_LOGI(TAG, "xQueueCreate");
+	
+	// Create the message queue
+	irrigator_monitor_queue_handle = xQueueCreate(QTD_DIG_OUTS, sizeof(pipework_to_irrigate_queue_message_t));
+	
+	ESP_LOGI(TAG, "CREATE_TASK");
 	// Create HTTP server monitor task
 	CREATE_TASK(&irrigator_freeRTOS_monitor,
 				"irrigator_monitor",
@@ -69,9 +78,6 @@ static void irrigator_freeRTOS_setup(void)
 				NULL,
 				IRRIGATOR_MONITOR_CORE);
 #endif
-	
-	// Create the message queue
-	irrigator_monitor_queue_handle = xQueueCreate(QTD_DIG_OUTS, sizeof(pipework_to_irrigate_queue_message_t));
 }
 
 // Sends a message to the queue
