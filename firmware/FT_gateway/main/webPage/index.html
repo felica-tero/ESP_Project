@@ -7,16 +7,17 @@
 		<script src='jquery-3.3.1.min.js'></script>
 		<link rel="stylesheet" href="app.css">
 		<script async src="app.js"></script>
-		<title>ESP32 - Wake n' Dance!</title>
+		<title>ESP32 - Felica Tero</title>
 	</head>
 	<body>
 	<header>
-		<h1>Connect your device to internet here</h1>
+		<img src="C:\Users\rikpa\OneDrive\Documentos\Extensão\ESP_Project\firmware\FT_gateway\main\webPage\IrrigaAI.png">
+		<h1>Conecte-se na internet</h1>
 	</header>
 
 	<div id="LocalTime">
-		<h2>SNTP Time Synchronization</h2>
-		<label for="local_time">Connect to WiFi for Local Time: </label>
+		<h2>SNTP Sincronização de Tempo</h2>
+		<label for="local_time">Conecte-se ao WiFi para Tempo Local: </label>
 		<div id="local_time"></div>
 	</div>
 	
@@ -35,14 +36,14 @@
 	<hr>
 		
 	<div id="WiFiConnect">
-		<h2>ESP32 WiFi Connect</h2>
+		<h2>ESP32 Conexão WiFi</h2>
 		<section>
-			<input id="connect_ssid" type="text" maxlength="32" placeholder="SSID" value="">
-			<input id="connect_pass" type="password" maxlength="64" placeholder="Password" value="">
-			<input type="checkbox" onclick="showPassword()">Show Password
+			<input id="connect_ssid" type="text" maxlength="32" placeholder="SSID" value=""><br>
+			<input id="connect_pass" type="password" maxlength="64" placeholder="Senha" value=""><br>
+			<input type="checkbox" onclick="showPassword()">Mostrar Senha
 		</section>
 		<div class="buttons">
-			<input id="connect_wifi" type="button" value="Connect" />
+			<input id="connect_wifi" type="button" value="Conectar" />
 		</div>
 		<div id="wifi_connect_credentials_errors"></div>
 		<h4 id="wifi_connect_status"></h4>

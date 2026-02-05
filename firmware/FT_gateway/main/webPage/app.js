@@ -310,3 +310,94 @@ function getLocalTime()
 		$("#local_time").text(data["time"]);
 	});
 }
+
+function acionarBomba() {
+	var bombaStatus = false; // Variável receberá o status atual da bomba do backend
+	var button = document.getElementById("btn-acionar-bomba");
+	var label = document.getElementById("status-bomba-atual");
+
+	if(button.innerText == "Acionar Bomba"){
+		bombaStatus = false;
+		alert("Bomba acionada!");
+	}
+	if(button.innerText == "Desacionar Bomba"){
+		bombaStatus = true;
+		alert("Bomba desacionada!");
+	}
+
+	if (bombaStatus == false) {
+		button.style.backgroundColor = "#83110C";
+		button.innerText = "Desacionar Bomba";
+		label.style.color = "#04AA6D";
+		label.innerText = "Ligado";
+		bombaStatus = true;
+	} else {
+		button.style.backgroundColor = "#04AA6D";
+		button.innerText = "Acionar Bomba";
+		label.style.color = "#83110C";
+		label.innerText = "Desligado";
+		bombaStatus = false;
+	}
+}
+
+const cidade = document.getElementById("cidade");
+cidade.addEventListener("load", mudarCidade());
+
+const previsao = document.getElementById("complementos-previsao");
+previsao.addEventListener("load", atualizaTempo());
+
+
+//modificar para evento de atualização dos dados dos sensores
+const dadosSensores = document.getElementById("dados-status");
+dadosSensores.addEventListener("load", atualizaDadosSensores());
+
+function mudarCidade() {
+	var localizacao = "Uberlândia"; //Colocar variável que recebe o nome da cidade do backend
+	cidade.innerText = localizacao;
+}
+
+function atualizaTempo(){
+	var temperatura = document.getElementById("temperatura-atual");
+	var max = document.getElementById("temp-max-dia");
+	var min = document.getElementById("temp-min-dia");
+	var vento = document.getElementById("vento-dia");
+	var umidade = document.getElementById("umidade-dia");
+	var pressao = document.getElementById("pressao-dia");
+	var precipitacao = document.getElementById("precipitacao-dia");
+
+	atualizaAnimacaoTempo();
+	var dados = [25, 30, 20, 15, 60, 1013, 5]; //Colocar variáveis que recebem os dados do backend
+
+	temperatura.innerText = dados[0] + " °C"; 
+	max.innerText = dados[1] + " °C"; 
+	min.innerText = dados[2] + " °C"; 
+	vento.innerText = dados[3] + " km/h"; 
+	umidade.innerText = dados[4] + " %"; 
+	pressao.innerText = dados[5] + " hPa"; 
+	precipitacao.innerText = dados[6] + " mm"; 
+
+
+}
+
+function atualizaAnimacaoTempo(){
+	var tempo = document.getElementById("tempo-atual");
+
+	//condições do tempo:
+	//1-ensolarado 2-encoberto 3-noite 4-nublado-dia 5-nublado-noite
+	//6-pouca-chuva-sol 7-muita-chuva-sol 8-garoa 9-pouca-chuva 10-chuva-moderada
+	//11-muita-chuva 12-tempestade 13-geada
+	var tempobackend = 1; //Colocar variável que recebe condição do tempo do backend
+	tempo.src = "tempo/animated/" + tempobackend +".svg";
+}
+
+function atualizaDadosSensores(){
+	var umidadeSolo = document.getElementById("umidade-solo");
+	var temperaturaSolo = document.getElementById("temperatura-solo");
+	var pressaoSolo = document.getElementById("pressao-solo");
+
+	var dadosSolo = [45, 22, 1010]; //Colocar variáveis que recebem os dados do backend
+
+	umidadeSolo.innerText = dadosSolo[0] + " %"; 
+	temperaturaSolo.innerText = dadosSolo[1] + " °C"; 
+	pressaoSolo.innerText = dadosSolo[2] + " hPa"; 
+}

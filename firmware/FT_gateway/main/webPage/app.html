@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<script src='jquery-3.3.1.min.js'></script>
+		<link rel="stylesheet" href="app.css">
+		<script async src="app.js"></script>
+		<title>ESP32 - Felica Tero</title>
+	</head>
+	<body>
+	<header>
+		<img src="C:\Users\rikpa\OneDrive\Documentos\Extensão\ESP_Project\firmware\FT_gateway\main\webPage\IrrigaAI.png">
+	</header>
+
+    <div class="navbar">
+        <a href="#"><img width="25" height="25" src="dados.png" alt="dados"/></a>
+        <a class="active" href="#"><img width="25" height="25" src="home.png" alt="home"/></a>
+        <a href="#"><img width="25" height="25" src="historico.png" alt="historico"/></a>
+    </div>
+    <div id="corpo">
+	    <div id="conteudo">
+            <div id="previsao">
+                <h3>
+                    Tempo agora em:
+                    <span id="cidade" class="-text"></span>
+                </h3>
+                <div class="flex-tempo-atual">
+                    <span id="tempo-atual" class="-image"><img src="tempo/animated/1.svg" width="100" height="100"></span>
+                    <span id="temperatura-atual"></span>
+                </div>
+                <div id="max-min">
+                    <span id="tempo-atual" class="image"><img src="tempo/arrow-min.svg" width="20" height="20"></span>
+                    <span id="temp-max-dia" class="text"></span>
+                    <span id="tempo-atual" class="image"><img src="tempo/arrow-max.svg" width="20" height="20"></span>
+                    <span id="temp-min-dia" class="text"></span>
+                </div>
+                <div id="max-min">
+                    <h3 class="text">Dados Clima:</h3>
+                </div>
+                <div id="complementos-previsao">
+                    <div id="elemento-comp">
+                        <h3 id="elemento-label">Vento</h3>
+                        <span id="vento-dia" class="text"></span>
+                    </div>
+                    <div id="elemento-comp">
+                        <h3 id="elemento-label">Umidade do Ar</h3>
+                        <span id="umidade-dia" class="text"></span>
+                    </div>
+                    <div id="elemento-comp">
+                        <h3 id="elemento-label">Pressão do Ar</h3>
+                        <span id="pressao-dia" class="text"></span>
+                    </div>
+                    <div id="elemento-comp">
+                        <h3 id="elemento-label">Precipitação</h3>
+                        <span id="precipitacao-dia" class="text"></span>
+                    </div>
+                </div>
+            </div>
+	    </div>
+        <div id="conteudo-dados">
+            <div id="dados">
+                <h3>Status Bomba:</h3>
+                <div class="flex-bomba">
+                    <img src="tempo/irrigation.svg" width="75" height="75">
+                    <span id="status-bomba-atual">Desligado</span>
+                </div>
+                <div class="botao-acionar-bomba">
+                    <button id="btn-acionar-bomba" onclick="acionarBomba()">Acionar Bomba</button>
+                </div>
+                <div id="max-min">
+                    <h3 class="text">Dados Sensor:</h3>
+                </div>
+                <div id="dados-status">
+                    <div id="elemento-dados-sensor">
+                        <h3 id="elemento-dados-label">Umidade no Solo</h3>
+                        <span id="umidade-solo" class="text"></span>
+                    </div>
+                    <div id="elemento-dados-sensor">
+                        <h3 id="elemento-dados-label">Temperatura no Solo</h3>
+                        <span id="temperatura-solo" class="text"></span>
+                    </div>
+                    <div id="elemento-dados-sensor">
+                        <h3 id="elemento-dados-label">Pressão no Solo</h3>
+                        <span id="pressao-solo" class="text"></span>
+                    </div>
+                </div>
+            </div>
+	    </div>
+    </div>
+
+	<hr>
+		
+	</body>
+<html>

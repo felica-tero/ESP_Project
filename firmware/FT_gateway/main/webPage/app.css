@@ -1,9 +1,17 @@
+header{
+    padding-top: 2px;
+    text-align: center;
+}
 
+header > img{
+    align-content: center;
+    max-width: 200px;
+}
 
 body {
     background-color: #f1f1f1;
     font-family: HelveticaNeueRegular, HelveticaNeue-Regular, "Helvetica Neue Regular", HelveticaNeue, "Helvetica Neue", Helvetica, Arial;
-    color: #0272B7;
+    color: #00bf63;
 }
 
 h1 {
@@ -12,22 +20,22 @@ h1 {
     margin: 0;
     padding: 10px;
     font-size: 1.7em;
-    color: #1d3557;
+    color: #73815e;
 }
 
 h2 {
 	font-size: 1.4em;
-    color: #1d3557;
+    color: #73815e;
 }
 
 h3 {
 	font-size: 1.2em;
-    color: #1d3557;
+    color: #73815e;
 }
 
 h4 {
 	font-size: 1em;
-    color: #1d3557;
+    color: #73815e;
 }
 
 .gr {
@@ -35,6 +43,10 @@ h4 {
 }
 .rd {
     color: red;
+}
+
+#LocalTime{
+    text-align: center;
 }
 
 #local_time {
@@ -47,6 +59,14 @@ h4 {
 
 #latest_firmware {
 	color: #1d3557;
+}
+
+#WiFiConnect{
+    text-align: center;
+}
+
+#connect_ssid, #connect_pass{
+    margin: 5px;
 }
 
 #connected_ap_label, #connected_ap {
@@ -94,17 +114,13 @@ input[type="button"] {
     color: #ffffff;
     text-shadow: 1px 1px 1px #000;
     border-radius: 10px;
-    background-color: RGBA(106,125,144,0.35);
-    background-image: linear-gradient(to top left,
-                                      rgba(0, 0, 0, .2),
-                                      rgba(0, 0, 0, .2) 30%,
-                                      rgba(0, 0, 0, 0));
+    background-color: #73815e;
     box-shadow: inset 2px 2px 3px rgba(255, 255, 255, .6),
                 inset -2px -2px 3px rgba(0, 0, 0, .6);
 }
 
 input[type="button"]:hover {
-    background-color: RGBA(112,164,222,0.68);
+    background-color: #7ed957;
 }
 
 input[type="button"]:active {
@@ -112,14 +128,250 @@ input[type="button"]:active {
                 inset 2px 2px 3px rgba(0, 0, 0, .6);
 }
 
+.navbar {
+    margin: 15px;
+    width: 100%;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.navbar a {
+  float: left;
+  padding: 10px 15.5% 10px 15.5%;
+  color: white;
+  text-decoration: none;  
+  background-color: #c8c5c5;
+  font-size: 17px;
+  text-align: center; 
+}
+
+.navbar a:hover {
+  background-color: #000;
+}
+
+.navbar a.active {
+  background-color: #04AA6D;
+}
+
+@media screen and (max-width: 1080px) {
+    .navbar a {
+        float: left;
+        padding: 10px 15% 10px 15%;
+        color: white;
+        text-decoration: none;  
+        background-color: #c8c5c5;
+        font-size: 17px;
+        text-align: center; 
+    }
+
+}
+
+@media screen and (max-width: 760px) {
+    .navbar a {
+        float: left;
+        padding: 10px 14.5% 10px 14.5%;
+        color: white;
+        text-decoration: none;  
+        background-color: #c8c5c5;
+        font-size: 17px;
+        text-align: center; 
+    }
+
+}
+
+@media screen and (max-width: 590px) {
+    .navbar a {
+        float: left;
+        padding: 10px 13.7% 10px 13.7%;
+        color: white;
+        text-decoration: none;  
+        background-color: #c8c5c5;
+        font-size: 17px;
+        text-align: center; 
+    }
+
+}
+
+@media screen and (max-width: 435px) {
+    .navbar a {
+        float: left;
+        padding: 10px 13% 10px 13%;
+        color: white;
+        text-decoration: none;  
+        background-color: #c8c5c5;
+        font-size: 17px;
+        text-align: center; 
+    }
+
+}
+
+@media screen and (max-width: 353px) {
+    .navbar{
+        width: 100%;
+        background-color: #c8c5c5;
+        overflow: auto;
+        display: block;
+    }
+    .navbar a {
+        float: none;
+        display: block;
+        padding: 12px 0px 12px 0px;
+        width: 100%;
+        text-align: center;
+    }
+}
+
+#corpo{
+    display: flex;
+    margin: 15px;
+    text-align: center;
+    border-radius: 5%;
+    flex-wrap: wrap;
+}
+
+#conteudo{
+    display: flex;
+    margin: 15px;
+    padding: 0px 30px 0px 0px;
+    background-color: white;
+    text-align: center;
+    border-radius: 5%;
+    box-shadow: 1px 1px 1px 2px gray;
+}
+
+#conteudo-dados{
+    display: flex;
+    margin: 15px;
+    padding: 0px 10px 0px 10px;
+    background-color: white;
+    text-align: center;
+    border-radius: 5%;
+    box-shadow: 1px 1px 1px 2px gray;
+}
+
+#previsao{
+    width: 100%;
+    padding-bottom: 30px;
+}
+
+#dados{
+    width: 100%;
+    padding-bottom: 30px;
+}
+
+.flex-tempo-atual{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-bomba{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 
+#tempo-atual{
+    flex: center;
+}
 
+#temperatura-atual{
+    padding: 0px;
+    font-size: 2em;
+    font-weight: bolder;
+}
 
+#status-bomba-atual{
+    color: #83110C;
+    padding: 0px;
+    font-size: 2em;
+    font-weight: bolder;
+}
 
+#max-min{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    flex-wrap: wrap;
+}
 
+#max-min .text{
+    padding: 0px 10px 0px 10px;
+}
 
+#complementos-previsao{
+    display: flex;
+    padding-left: 50px;
+    flex-wrap: wrap;
+}
 
+#dados-status{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
 
+#elemento-comp{
+    margin: 10px;
+    padding: 0px 10px 10px 10px;
+    border-radius: 5%;
+    box-shadow: 1px 1px 1px 2px gray;
+}
 
+#elemento-dados-sensor{
+    margin: 10px;
+    padding: 0px 10px 10px 10px;
+    border-radius: 5%;
+    box-shadow: 1px 1px 1px 2px gray;
+}
 
+#elemento-label{
+    text-decoration: bold;
+    text-align: center;
+}
+
+#elemento-dados-label{
+    text-decoration: bold;
+    text-align: center;
+}
+
+#elemento-comp .text{
+    text-align: center;
+}
+
+#elemento-dados-sensor .text{
+    text-align: center;
+    padding-bottom: 10px;
+}
+
+#elemento-dados-label .text{
+    text-align: center;
+    padding-bottom: 10px;
+}
+
+#btn-acionar-bomba {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    border: 0;
+    line-height: 2;
+    padding: 5px 15px;
+    text-align: center;
+    color: #ffffff;
+    text-shadow: 1px 1px 1px #000;
+    border-radius: 10px;
+    background-color: #04AA6D;
+    box-shadow: inset 2px 2px 3px rgba(255, 255, 255, .6),
+                inset -2px -2px 3px rgba(0, 0, 0, .6);
+}
+
+table, th, td {
+    border: 1px solid #000000;
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 1.2em;
+    table-layout: fixed
+}
