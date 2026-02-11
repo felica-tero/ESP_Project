@@ -38,7 +38,7 @@
 // Personal libraries
 #include "wifiApp.h"
 #include "httpServer.h"
-#include "ledRGB.h"
+// #include "ledRGB.h"
 #include "tasks_common.h"
 #include "nvsApp.h"
 
@@ -180,7 +180,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_START_HTTP_SERVER)(wifi_app_queue_mess
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_START_HTTP_SERVER]);
 	
 	httpServer_start();
-	ledRGB_wifi_disconnected();
+	// ledRGB_wifi_disconnected();
 }
 
 /**
@@ -215,7 +215,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_m
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_STA_CONNECTED_GOT_IP]);
 	
- 	ledRGB_wifi_connected();
+ 	// ledRGB_wifi_connected();
 	// displayOled_printHeaderNBody("CONNECTED!", "");
  	httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_SUCCESS);
 	
@@ -254,13 +254,13 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_USER_REQUESTED_STA_DISCONNECT)(wifi_ap
 	
 	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT);
 
- 	ledRGB_wifi_disconnect();
+ 	// ledRGB_wifi_disconnect();
 	// so it doesn't try to reconnect when we hit the button disconnect
 	g_retry_number = MAX_CONNECTION_RETRIES;
 	
  	ESP_ERROR_CHECK(esp_wifi_disconnect());
 	nvs_app_clear_sta_creds();
- 	ledRGB_wifi_disconnected();
+ 	// ledRGB_wifi_disconnected();
 }
 
 /**
@@ -299,7 +299,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_DISCONNECTED)(wifi_app_queue_messa
 		/// @note Adjust this case to your needs - maybe you want to keep trying to connect...
 	}
 	
- 	ledRGB_wifi_disconnected();
+ 	// ledRGB_wifi_disconnected();
 }
 
 /**
@@ -405,7 +405,7 @@ void wifiApp_start(void)
 	ESP_LOGI(TAG, "STARTING WIFI APPLICATION");
 	
 	// Start Wifi started LED
-	ledRGB_wifiApp_started();
+	// ledRGB_wifiApp_started();
 	
 	// Disable default WiFi logging messages
 	esp_log_level_set("WiFi", ESP_LOG_NONE);

@@ -42,8 +42,8 @@ static httpd_handle_t http_server_handle = NULL; ///> used on start and stop ser
 
 // Embedded files: JQuery, index.html, app.css, app.js and favicon.ico files
 #define X(uri_handler, file, http_resp_type, start, end) \
-	extern const uint8_t uri_handler##_start[]	asm(#start); \
-	extern const uint8_t uri_handler##_end[]	asm(#end);
+	extern const uint8_t uri_handler ## _start[]	asm(#start); \
+	extern const uint8_t uri_handler ## _end[]	asm(#end);
 	X_MACRO_HTTP_SERVER_URI_HANDLER_LIST
 #undef X
 	

@@ -39,7 +39,7 @@
 
 
 // WI-FI
-#define WIFI_AP_SSID			"WAKE_N_DANCE"		// Access Point SSID
+#define WIFI_AP_SSID			"FELICA_TERO"		// Access Point SSID
 #define WIFI_AP_PASSWORD		"12345678"			// AP password
 #define WIFI_AP_CHANNEL			1					// AP channel
 #define WIFI_AP_SSID_HIDDEN		0					// AP visible = 0

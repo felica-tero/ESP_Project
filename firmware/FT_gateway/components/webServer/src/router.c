@@ -20,7 +20,6 @@
 #include "esp_http_server.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
-#include "cJSON.h"
 #include "esp_netif.h"
 #include "esp_netif_ip_addr.h"
 #include "esp_netif_types.h"
@@ -163,67 +162,69 @@ esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_status_handler)(httpd_re
 static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_json)(httpd_req_t *req)
 {	
 	// char localJSONObjBuffer[BUFFER_MAX_SIZE];
-	size_t lenBodyJson = 0;
-	size_t lenPass;
-	size_t lenSSID;
+	// size_t lenBodyJson = 0;
+	// size_t lenPass;
+	// size_t lenSSID;
 
-	char * ssid_p;
-	char * pwd_p;
-	wifi_config_t * wifi_config_p = NULL;
+	// char * ssid_p;
+	// char * pwd_p;
+	// wifi_config_t * wifi_config_p = NULL;
 	
-	ESP_LOGI(TAG, "/wifiConnect.json requested");
+	// ESP_LOGI(TAG, "/wifiConnect.json requested");
 	
-	memset(localJSONObjBuffer,0, BUFFER_MAX_SIZE);
+	// memset(localJSONObjBuffer,0, BUFFER_MAX_SIZE);
 
-	// Get Request Body
-	lenBodyJson = req->content_len;
-	httpd_req_recv(req, localJSONObjBuffer, lenBodyJson);
-	printf("Data sent by the client: %.*s\n",lenBodyJson, localJSONObjBuffer);
+	// // Get Request Body
+	// recv_len = httpd_req_recv(req, ota_buff, MIN(content_length, sizeof(ota_buff)));
 
-	// Parse the JSON data (example using cJSON)
-	cJSON *body_json = cJSON_Parse(localJSONObjBuffer);
-	if (!body_json) {
-		ESP_LOGE(TAG, "Failed to parse JSON data");
-		cJSON_Delete(body_json);
-		return ESP_FAIL;
-	}
+	// lenBodyJson = req->content_len;
+	// httpd_req_recv(req, localJSONObjBuffer, lenBodyJson);
+	// printf("Data sent by the client: %.*s\n",lenBodyJson, localJSONObjBuffer);
 
-	cJSON *ssid_json = cJSON_GetObjectItemCaseSensitive(body_json, "c_ssid");
-	cJSON *pwd_json = cJSON_GetObjectItemCaseSensitive(body_json, "c_pwd");
+	// // Parse the JSON data (example using cJSON)
+	// cJSON *body_json = cJSON_Parse(localJSONObjBuffer);
+	// if (!body_json) {
+	// 	ESP_LOGE(TAG, "Failed to parse JSON data");
+	// 	cJSON_Delete(body_json);
+	// 	return ESP_FAIL;
+	// }
 
-	if (!ssid_json || !pwd_json) {
-		ESP_LOGE(TAG, "Missing 'c_ssid' or 'c_pwd' in JSON data");
-		cJSON_Delete(body_json);
-		return ESP_FAIL;
-	}
+	// cJSON *ssid_json = cJSON_GetObjectItemCaseSensitive(body_json, "c_ssid");
+	// cJSON *pwd_json = cJSON_GetObjectItemCaseSensitive(body_json, "c_pwd");
 
-	if (!cJSON_IsString(ssid_json) || !cJSON_IsString(pwd_json)) {
-		ESP_LOGE(TAG, "Invalid data type for 'c_ssid' or 'c_pwd'");
-		cJSON_Delete(body_json);
-		return ESP_FAIL;
-	}
+	// if (!ssid_json || !pwd_json) {
+	// 	ESP_LOGE(TAG, "Missing 'c_ssid' or 'c_pwd' in JSON data");
+	// 	cJSON_Delete(body_json);
+	// 	return ESP_FAIL;
+	// }
+
+	// if (!cJSON_IsString(ssid_json) || !cJSON_IsString(pwd_json)) {
+	// 	ESP_LOGE(TAG, "Invalid data type for 'c_ssid' or 'c_pwd'");
+	// 	cJSON_Delete(body_json);
+	// 	return ESP_FAIL;
+	// }
 
 
-	// Get SSID from body
-	ssid_p = wifiApp_getStationSSID();
-	memset(ssid_p, 0x00, WIFI_SSID_LENGTH);
-	ssid_p = ssid_json->valuestring;
-	lenSSID = strlen(ssid_p);
+	// // Get SSID from body
+	// ssid_p = wifiApp_getStationSSID();
+	// memset(ssid_p, 0x00, WIFI_SSID_LENGTH);
+	// ssid_p = ssid_json->valuestring;
+	// lenSSID = strlen(ssid_p);
 	
-	// Get Password from body
-	pwd_p = wifiApp_getStationPassword();
-	memset(pwd_p, 0x00, WIFI_PASSWORD_LENGTH);
-	pwd_p = pwd_json->valuestring;
-	lenPass = strlen(pwd_p);
+	// // Get Password from body
+	// pwd_p = wifiApp_getStationPassword();
+	// memset(pwd_p, 0x00, WIFI_PASSWORD_LENGTH);
+	// pwd_p = pwd_json->valuestring;
+	// lenPass = strlen(pwd_p);
 	
-	// Update the WiFi networks configuration and let the WiFi applications know
-	wifi_config_p = wifiApp_getWifiConfig();
-	memset(wifi_config_p, 0x00, sizeof(wifi_config_t));
-	memcpy(wifi_config_p->sta.ssid, ssid_p, lenSSID);
-	memcpy(wifi_config_p->sta.password, pwd_p, lenPass);
-	wifiApp_sendMessage(WIFI_APP_CONNECTING_FROM_HTTP_SERVER);
+	// // Update the WiFi networks configuration and let the WiFi applications know
+	// wifi_config_p = wifiApp_getWifiConfig();
+	// memset(wifi_config_p, 0x00, sizeof(wifi_config_t));
+	// memcpy(wifi_config_p->sta.ssid, ssid_p, lenSSID);
+	// memcpy(wifi_config_p->sta.password, pwd_p, lenPass);
+	// wifiApp_sendMessage(WIFI_APP_CONNECTING_FROM_HTTP_SERVER);
 
-	cJSON_Delete(body_json);
+	// cJSON_Delete(body_json);
 	
 	return ESP_OK;
 }

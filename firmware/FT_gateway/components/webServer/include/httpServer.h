@@ -47,11 +47,17 @@
  * Explanation of how to add more routes using X_MACRO
  */
 #define X_MACRO_HTTP_SERVER_URI_HANDLER_LIST\
-	X(jquery_3_3_1_min_js,	"/jquery-3.3.1.min.js",	"application/javascript", _binary_jquery_3_3_1_min_js_start,	_binary_jquery_3_3_1_min_js_end	) \
-	X(index_html,			"/index.html",			"text/html"				, _binary_index_html_start, 			_binary_index_html_end			) \
+	X(dados_png,			"/dados.png",			"image/x-icon"			, _binary_dados_png_start, 				_binary_dados_png_end			) \
+	X(home_png,				"/home.png",			"image/x-icon"			, _binary_home_png_start, 				_binary_home_png_end			) \
+	X(IrrigaAI_png,			"/IrrigaAI.png",		"image/x-icon"			, _binary_IrrigaAI_png_start, 			_binary_IrrigaAI_png_end		) \
+	X(favicon_ico,			"/favicon.ico",			"image/x-icon"			, _binary_favicon_ico_start, 			_binary_favicon_ico_end			) \
 	X(app_css,				"/app.css",				"text/css"				, _binary_app_css_start, 				_binary_app_css_end				) \
 	X(app_js,				"/app.js",				"application/javascript", _binary_app_js_start, 				_binary_app_js_end				) \
-	X(favicon_ico,			"/favicon_ico",			"image/x-icon"			, _binary_favicon_ico_start, 			_binary_favicon_ico_end			)
+	X(app_html,				"/app.html",			"text/html"				, _binary_app_html_start, 				_binary_app_html_end			) \
+	X(historico_html,		"/historico.html",		"text/html"				, _binary_historico_html_start, 		_binary_historico_html_end		) \
+	X(index_html,			"/index.html",			"text/html"				, _binary_index_html_start, 			_binary_index_html_end			) \
+	X(jquery_3_3_1_min_js,	"/jquery-3.3.1.min.js",	"application/javascript", _binary_jquery_3_3_1_min_js_start,	_binary_jquery_3_3_1_min_js_end	)
+
 
 /**************************
 **		STRUCTURES		 **
