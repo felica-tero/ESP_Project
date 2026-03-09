@@ -221,7 +221,7 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_json)(httpd_req_t *r
 	memset(wifi_config_p, 0x00, sizeof(wifi_config_t));
 	memcpy(wifi_config_p->sta.ssid, ssid_p, lenSSID);
 	memcpy(wifi_config_p->sta.password, pwd_p, lenPass);
-	wifiApp_sendMessage(WIFI_APP_CONNECTING_FROM_HTTP_SERVER);
+	wifiApp_sendMessage(WIFI_APP_STA_TRY_TO_CONNECT);
 
 	cJSON_Delete(body_json);
 	

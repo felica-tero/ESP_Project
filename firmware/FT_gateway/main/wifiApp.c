@@ -37,7 +37,6 @@
 
 // Personal libraries
 #include "wifiApp.h"
-#include "httpServer.h"
 #include "ledRGB.h"
 #include "tasks_common.h"
 #include "nvsApp.h"
@@ -52,8 +51,7 @@
 // Tag used for ESP serial console messages
 static const char TAG[] = "wifi_app";
 
-// Wifi connected event callback
-static wifi_connected_event_callback_t wifi_connected_event_cb = NULL;
+static wifiApp_callbacks_t wifiApp_callbacks = {0};
 
 // Alocating Station WiFi credencials
 char ssid[WIFI_SSID_LENGTH];
@@ -70,7 +68,7 @@ static uint8_t g_retry_number;
  */
 static EventGroupHandle_t wifi_app_event_group;
 const int WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT			= BIT0;
-const int WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT			= BIT1;
+const int WIFI_APP_STA_TRY_TO_CONNECT_BIT			= BIT1;
 const int WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT		= BIT2;
 
 EventBits_t eventBits;
@@ -92,8 +90,8 @@ static QueueHandle_t wifi_app_queue_handle_t;
 	/* Static Functions */
 	
 // STATE MACHINE
-static void WIFI_STATE_FUNC_NAME(WIFI_APP_START_HTTP_SERVER)(wifi_app_queue_message_t * st);
-static void WIFI_STATE_FUNC_NAME(WIFI_APP_CONNECTING_FROM_HTTP_SERVER)(wifi_app_queue_message_t * st);
+static void WIFI_STATE_FUNC_NAME(WIFI_APP_SIGNAL_READY)(wifi_app_queue_message_t * st);
+static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_TRY_TO_CONNECT)(wifi_app_queue_message_t * st);
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_message_t * st);
 static void wifiApp_stateMachine_handler(wifi_app_queue_message_t * msg);
 
@@ -137,6 +135,32 @@ wifi_config_t * wifiApp_getWifiConfig(void)
 
 
 /**************************
+**		  GETTERS		 **
+**************************/
+
+/**
+ * @brief Setup Callbacks
+ * @details
+ */
+void wifiApp_setupCallbacks(
+	wifi_event_callback_t wifi_init,
+	wifi_event_callback_t wifi_signal_ready,
+	wifi_event_callback_t wifi_sta_connecting,
+	wifi_event_callback_t wifi_sta_connected,
+	wifi_event_callback_t wifi_sta_connectFail,
+	wifi_event_callback_t wifi_sta_disconnect
+)
+{
+	wifiApp_callbacks.wifi_init				= wifi_init;
+	wifiApp_callbacks.wifi_signal_ready		= wifi_signal_ready;
+	wifiApp_callbacks.wifi_sta_connecting	= wifi_sta_connecting;
+	wifiApp_callbacks.wifi_sta_connected	= wifi_sta_connected;
+	wifiApp_callbacks.wifi_sta_connectFail	= wifi_sta_connectFail;
+	wifiApp_callbacks.wifi_sta_disconnect	= wifi_sta_disconnect;
+}
+
+
+/**************************
 **		APP FUNCTIONS	 **
 **************************/
 
@@ -157,13 +181,6 @@ static void wifiApp_setup(void)
 	wifiApp_softAP_config();
 }
 
-// Sets the callback function
-void wifiApp_setCallback(wifi_connected_event_callback_t callbackFunction)
-{
-	 wifi_connected_event_cb = callbackFunction;
-}
-
-
 
 /**************************
 **		STATE MACHINE	 **
@@ -172,28 +189,30 @@ void wifiApp_setCallback(wifi_connected_event_callback_t callbackFunction)
 /**
  * @brief State Machine Function Definition according to sm_wifi_app_function
  * function that defines the behavior on 
- * [WIFI_APP_START_HTTP_SERVER] state
+ * [WIFI_APP_SIGNAL_READY] state
  * @details
  */
-static void WIFI_STATE_FUNC_NAME(WIFI_APP_START_HTTP_SERVER)(wifi_app_queue_message_t * st)
+static void WIFI_STATE_FUNC_NAME(WIFI_APP_SIGNAL_READY)(wifi_app_queue_message_t * st)
 {
-	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_START_HTTP_SERVER]);
+	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_SIGNAL_READY]);
 	
-	httpServer_start();
-	ledRGB_wifi_disconnected();
+	if (NULL != wifiApp_callbacks.wifi_signal_ready)
+	{
+		wifiApp_callbacks.wifi_signal_ready();
+	}
 }
 
 /**
  * @brief State Machine Function Definition according to sm_wifi_app_function
  * function that defines the behavior on
- * [WIFI_APP_CONNECTING_FROM_HTTP_SERVER] state
+ * [WIFI_APP_STA_TRY_TO_CONNECT] state
  * @details
  */
-static void WIFI_STATE_FUNC_NAME(WIFI_APP_CONNECTING_FROM_HTTP_SERVER)(wifi_app_queue_message_t * st)
+static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_TRY_TO_CONNECT)(wifi_app_queue_message_t * st)
 {
-	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_CONNECTING_FROM_HTTP_SERVER]);
+	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_STA_TRY_TO_CONNECT]);
 
-	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT);
+	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_STA_TRY_TO_CONNECT_BIT);
 	
 	// Attempt a connection
 	wifiApp_sta_connect();
@@ -202,7 +221,10 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_CONNECTING_FROM_HTTP_SERVER)(wifi_app_
 	g_retry_number = 0;
 	
 	// Let the HTTP server know about the connection attempt
-	httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_INIT);
+	if (NULL != wifiApp_callbacks.wifi_sta_connecting)
+	{
+		wifiApp_callbacks.wifi_sta_connecting();
+	}
 }
 
 /**
@@ -214,10 +236,6 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_CONNECTING_FROM_HTTP_SERVER)(wifi_app_
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_message_t * st)
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_STA_CONNECTED_GOT_IP]);
-	
- 	ledRGB_wifi_connected();
-	// displayOled_printHeaderNBody("CONNECTED!", "");
- 	httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_SUCCESS);
 	
 	eventBits = xEventGroupGetBits(wifi_app_event_group);
 
@@ -231,14 +249,14 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_m
 	{
 		nvs_app_save_sta_creds();
 	}
-	if(eventBits & WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT)
+	if(eventBits & WIFI_APP_STA_TRY_TO_CONNECT_BIT)
 	{
-		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT);
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_STA_TRY_TO_CONNECT_BIT);
 	}
 
-	if(wifi_connected_event_cb != NULL)
+	if (NULL != wifiApp_callbacks.wifi_sta_connected)
 	{
-		wifi_connected_event_cb();
+		wifiApp_callbacks.wifi_sta_connected();
 	}
 }
 
@@ -254,13 +272,16 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_USER_REQUESTED_STA_DISCONNECT)(wifi_ap
 	
 	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT);
 
- 	ledRGB_wifi_disconnect();
 	// so it doesn't try to reconnect when we hit the button disconnect
 	g_retry_number = MAX_CONNECTION_RETRIES;
 	
  	ESP_ERROR_CHECK(esp_wifi_disconnect());
 	nvs_app_clear_sta_creds();
- 	ledRGB_wifi_disconnected();
+
+	if (NULL != wifiApp_callbacks.wifi_sta_disconnect)
+	{
+		wifiApp_callbacks.wifi_sta_disconnect();
+	}
 }
 
 /**
@@ -281,25 +302,31 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_DISCONNECTED)(wifi_app_queue_messa
 		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT);
 		nvs_app_clear_sta_creds();
 	}
-	else if (eventBits & WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT)
+	else if (eventBits & WIFI_APP_STA_TRY_TO_CONNECT_BIT)
 	{
 		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT FROM THE HTTP SERVER");
-		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_FROM_HTTP_SERVER_BIT);
-		httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_FAIL);
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_STA_TRY_TO_CONNECT_BIT);
+
+		if (NULL != wifiApp_callbacks.wifi_sta_connectFail)
+		{
+			wifiApp_callbacks.wifi_sta_connectFail();
+		}
 	}
 	else if (eventBits & WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT)
 	{
 		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: USER REQUESTED DISCONECTION");
 		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT);
-		httpServer_monitor_sendMessage(HTTP_WIFI_USER_DISCONNECT);
+
+		if (NULL != wifiApp_callbacks.wifi_sta_disconnect)
+		{
+			wifiApp_callbacks.wifi_sta_disconnect();
+		}
 	}
 	else
 	{
 		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT FAILED, CHECK WIFI ACESS POINT AVAILABITITY");
 		/// @note Adjust this case to your needs - maybe you want to keep trying to connect...
 	}
-	
- 	ledRGB_wifi_disconnected();
 }
 
 /**
@@ -322,7 +349,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_LOAD_SAVED_CREDENTIALS)(wifi_app_queue
 		ESP_LOGI(TAG, "Unable to load sation configuration");
 	}
 	// Next, start the web server
-	wifiApp_sendMessage(WIFI_APP_START_HTTP_SERVER);
+	wifiApp_sendMessage(WIFI_APP_SIGNAL_READY);
 }
 
 
@@ -404,8 +431,10 @@ void wifiApp_start(void)
 {
 	ESP_LOGI(TAG, "STARTING WIFI APPLICATION");
 	
-	// Start Wifi started LED
-	ledRGB_wifiApp_started();
+	if (NULL != wifiApp_callbacks.wifi_init)
+	{
+		wifiApp_callbacks.wifi_init();
+	}
 	
 	// Disable default WiFi logging messages
 	esp_log_level_set("WiFi", ESP_LOG_NONE);

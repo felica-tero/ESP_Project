@@ -21,6 +21,7 @@
 
 // Personal libraries
 #include "httpServer.h"
+#include "wifiApp.h"
 #include "tasks_common.h"
 
 

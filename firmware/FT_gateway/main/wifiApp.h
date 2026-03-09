@@ -40,8 +40,8 @@
  * @details
  */
 #define X_MACRO_WIFI_STATE_LIST 				\
-	X(0, WIFI_APP_START_HTTP_SERVER				) \
-	X(1, WIFI_APP_CONNECTING_FROM_HTTP_SERVER	) \
+	X(0, WIFI_APP_SIGNAL_READY				) \
+	X(1, WIFI_APP_STA_TRY_TO_CONNECT	) \
 	X(2, WIFI_APP_STA_CONNECTED_GOT_IP			) \
 	X(3, WIFI_APP_USER_REQUESTED_STA_DISCONNECT	) \
 	X(4, WIFI_APP_STA_DISCONNECTED				) \
@@ -57,7 +57,7 @@
  * @brief Wifi callback function type
  * @details
  */
-typedef void(*wifi_connected_event_callback_t)(void);
+typedef void(*wifi_event_callback_t)(void);
 
 /**
  * @brief Message IDs for the WiFi application task
@@ -99,6 +99,15 @@ typedef struct sm_wifi_table_fn_s
 	sm_wifi_app_function func;
 } sm_wifi_table_fn_t;
 
+typedef struct wifiApp_callbacks_s
+{
+	wifi_event_callback_t wifi_init;
+	wifi_event_callback_t wifi_signal_ready;
+	wifi_event_callback_t wifi_sta_connecting;
+	wifi_event_callback_t wifi_sta_connected;
+	wifi_event_callback_t wifi_sta_connectFail;
+	wifi_event_callback_t wifi_sta_disconnect;
+} wifiApp_callbacks_t;
 
 
 /**************************
@@ -146,11 +155,17 @@ BaseType_t wifiApp_sendMessage(sm_wifi_app_state_e msgId);
 void wifiApp_start(void);
 
 /**
- * @brief Sets the callback function
+ * @brief Setup Callbacks
  * @details
- * @param cbFunction 
  */
-void wifiApp_setCallback(wifi_connected_event_callback_t cbFunction);
+void wifiApp_setupCallbacks(
+	wifi_event_callback_t wifi_init,
+	wifi_event_callback_t wifi_signal_ready,
+	wifi_event_callback_t wifi_sta_connecting,
+	wifi_event_callback_t wifi_sta_connected,
+	wifi_event_callback_t wifi_sta_connectFail,
+	wifi_event_callback_t wifi_sta_disconnect
+);
 
 
 #endif /* MAIN_WIFIAPP_H_ */

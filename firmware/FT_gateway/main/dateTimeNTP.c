@@ -69,12 +69,6 @@ char date_str[DATE_LEN]={0}, time_str[TIME_LEN]={0};
 /* Static Functions */
 
 /**
- * @brief Event callback function
- * 
- */
-static void dateTimeNTP_wifiApp_connectedEvents(void);
-
-/**
  * @brief Callback function for NTP date and time queries
  * 
  */
@@ -102,12 +96,6 @@ char* dateTimeNTP_getData(void)
 }
 
 void dateTimeNTP_setup(void)
-{
-	// Set the wifi connected event callback function
-	wifiApp_setCallback(dateTimeNTP_wifiApp_connectedEvents);
-}
-
-static void dateTimeNTP_wifiApp_connectedEvents(void)
 {
 	ESP_LOGI(TAG, "WiFi Application Connected!");
 
