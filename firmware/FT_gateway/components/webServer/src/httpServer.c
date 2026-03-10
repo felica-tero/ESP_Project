@@ -105,6 +105,14 @@ void httpServer_setup(api_routes_register_fn apiFunction)
 	wifiApp_start();
 }
 
+
+void httpServer_tryToConnect(char * ssid, char * passwd)
+{
+	wifiApp_setCredentials(ssid, passwd);
+	
+	wifiApp_sendMessage(WIFI_APP_TRY_TO_CONNECT);
+}
+
 /**
  * Functions that get uri handler for when the files are requested when accessing the web page.
  * @param req HTTP request for which the uri needs to be handled.
@@ -174,15 +182,12 @@ static void httpServer_uri_setRoutesFromOtherFiles(void)
  */
 void httpServer_start(void)
 {
-	ESP_LOGE(TAG, "httpServer_start");
 	if (http_server_handle == NULL)
 	{
 		// Initializing and configurating the structure
 		httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 		httpServer_configure(&config);
 
-		ESP_LOGE(TAG, "http_server_handle == NULL");
-		
 		//Start the httpd server
 		if (httpd_start(&http_server_handle, &config) == ESP_OK)
 		{

@@ -4,7 +4,9 @@
 idf_component_register(
     SRC_DIRS "src"
     INCLUDE_DIRS "include"
-    REQUIRES    driver
+    REQUIRES    projectConfig
+				personal_hal
+				driver
                 nvs_flash
                 esp_system
                 esp_timer
@@ -15,7 +17,6 @@ idf_component_register(
                 esp_netif
                 app_update
 				json
-                projectConfig
     EMBED_FILES	"webPage/app.css"
     			"webPage/app.js"
     			"webPage/favicon.ico"

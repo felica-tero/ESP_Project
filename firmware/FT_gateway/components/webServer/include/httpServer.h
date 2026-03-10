@@ -96,6 +96,9 @@ BaseType_t httpServer_monitor_sendMessage(http_server_state_e msgId);
  */
 void httpServer_setup(api_routes_register_fn apiFunction);
 
+
+void httpServer_tryToConnect(char * ssid, char * passwd);
+
 /**
  * Starts the HTTP server.
  */

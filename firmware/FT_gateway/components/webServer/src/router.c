@@ -72,7 +72,7 @@ static void router_uri_register(void);
 void router_setup(void)
 {
 	httpServer_setup(router_uri_register);
-	
+
 	// Clean localTimeJSON buffer
 	memset(localTimeJSON, 0, BUFFER_MAX_SIZE);
 }
@@ -160,13 +160,7 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_json)(httpd_req_t *r
 {	
 	// char localJSONObjBuffer[BUFFER_MAX_SIZE];
 	size_t lenBodyJson = 0;
-	size_t lenPass;
-	size_t lenSSID;
 
-	char * ssid_p;
-	char * pwd_p;
-	wifi_config_t * wifi_config_p = NULL;
-	
 	ESP_LOGI(TAG, "/wifiConnect.json requested");
 	
 	memset(localJSONObjBuffer,0, BUFFER_MAX_SIZE);
@@ -200,24 +194,8 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_json)(httpd_req_t *r
 	}
 
 
-	// Get SSID from body
-	ssid_p = wifiApp_getStationSSID();
-	memset(ssid_p, 0x00, WIFI_SSID_LENGTH);
-	ssid_p = ssid_json->valuestring;
-	lenSSID = strlen(ssid_p);
-	
-	// Get Password from body
-	pwd_p = wifiApp_getStationPassword();
-	memset(pwd_p, 0x00, WIFI_PASSWORD_LENGTH);
-	pwd_p = pwd_json->valuestring;
-	lenPass = strlen(pwd_p);
-	
 	// Update the WiFi networks configuration and let the WiFi applications know
-	wifi_config_p = wifiApp_getWifiConfig();
-	memset(wifi_config_p, 0x00, sizeof(wifi_config_t));
-	memcpy(wifi_config_p->sta.ssid, ssid_p, lenSSID);
-	memcpy(wifi_config_p->sta.password, pwd_p, lenPass);
-	wifiApp_sendMessage(WIFI_APP_TRY_TO_CONNECT);
+	httpServer_tryToConnect(ssid_json->valuestring, pwd_json->valuestring);
 
 	cJSON_Delete(body_json);
 	
@@ -258,22 +236,15 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(get_wifi_connect_info_json)(httpd
 	char ipInfoJSON[200];
 	memset(ipInfoJSON, 0x00, sizeof(ipInfoJSON));
 	
+    char ssid[33];	/**< SSID of AP */
 	char ip[IP4ADDR_STRLEN_MAX];
 	char netmask[IP4ADDR_STRLEN_MAX];
 	char gateway[IP4ADDR_STRLEN_MAX];
 
 	if (httpServer_get_wifiConnectStatus() == WIFI_STATUS_CONNECT_SUCCESS)
 	{
-		wifi_ap_record_t wifi_data;
-		ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&wifi_data));
-		char * ssid = (char*)wifi_data.ssid;
-		
-		esp_netif_ip_info_t ip_info;
-		ESP_ERROR_CHECK(esp_netif_get_ip_info(esp_netif_sta, &ip_info));
-		esp_ip4addr_ntoa(&ip_info.ip, ip, IP4ADDR_STRLEN_MAX);
-		esp_ip4addr_ntoa(&ip_info.netmask, netmask, IP4ADDR_STRLEN_MAX);
-		esp_ip4addr_ntoa(&ip_info.gw, gateway, IP4ADDR_STRLEN_MAX);
-		
+		wifiApp_getWifiConnectInfo(ssid, ip, netmask, gateway);
+
 		sprintf(ipInfoJSON, "{\"ip\":\"%s\",\"netmask\":\"%s\",\"gateway\":\"%s\",\"ap\":\"%s\"}", ip, netmask, gateway, ssid);
 	}
 	

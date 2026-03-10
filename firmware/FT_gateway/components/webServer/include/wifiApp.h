@@ -27,6 +27,8 @@
 **		DEFINITIONS		 **
 **************************/
 
+#define WIFI_APP_NAMESPACE	"wifi"
+#define WIFI_APP_KEY		"creds"
 
 /**
  * @brief Macro to define the function name of each state
@@ -40,18 +42,24 @@
  * @details
  */
 #define X_MACRO_WIFI_STATE_LIST 				\
-	X(0, WIFI_APP_SIGNAL_READY				) \
-	X(1, WIFI_APP_TRY_TO_CONNECT	) \
+	X(0, WIFI_APP_SIGNAL_READY					) \
+	X(1, WIFI_APP_TRY_TO_CONNECT				) \
 	X(2, WIFI_APP_STA_CONNECTED_GOT_IP			) \
 	X(3, WIFI_APP_USER_REQUESTED_STA_DISCONNECT	) \
 	X(4, WIFI_APP_STA_DISCONNECTED				) \
-	X(5, WIFI_APP_LOAD_SAVED_CREDENTIALS)
+	X(5, WIFI_APP_LOAD_SAVED_CREDENTIALS		)
 
 
 
 /**************************
 **		STRUCTURES		 **
 **************************/
+
+typedef struct wifiApp_credentials_s
+{
+	char ssid[WIFI_SSID_LENGTH];
+	char passwd[WIFI_PASSWORD_LENGTH];
+} wifiApp_credentials_t;
 
 /**
  * @brief Wifi callback function type
@@ -124,32 +132,21 @@ typedef enum wifi_connect_status_e
 **************************/
 
 /**
- * @brief Returns the Address of the first char of SSID string
- * @details
- * @return char * the Address of the first char of SSID string
- */
-char * wifiApp_getStationSSID(void);
-
-/**
- * @brief Returns the Address of the first char of password string
- * @details
- * @return char * the Address of the first char of password string
- */
-char * wifiApp_getStationPassword(void);
-
-/**
- * @brief Gets the WiFi configuration
- * @details
- * @return wifi_config_t* 
- */
-wifi_config_t * wifiApp_getWifiConfig(void);
-
-/**
  * @brief Gets the WiFi connection status
  * @details
  * @return wifi_connect_status_t 
  */
 uint8_t wifiApp_getConnStatus(void);
+
+void wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway);
+
+
+/**************************
+**		  SETTERS		 **
+**************************/
+
+// Sets the WiFi credentials info
+void wifiApp_setCredentials(char * ssid, char * passwd);
 
 
 /**************************

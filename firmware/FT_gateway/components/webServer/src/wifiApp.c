@@ -38,7 +38,7 @@
 // Personal libraries
 #include "wifiApp.h"
 #include "tasks_common.h"
-#include "nvsApp.h"
+#include "hal_memory.h"
 
 
 /**************************
@@ -54,11 +54,19 @@ static const char TAG[] = "wifi_app";
 static wifi_fn_callbacks_t wifi_fn_callbacks = {0};
 
 // Alocating Station WiFi credencials
-char ssid[WIFI_SSID_LENGTH];
-char passwd[WIFI_PASSWORD_LENGTH];
+static wifiApp_credentials_t wifi_credentials = {0};
+static mem_address_saver_t wifi_credentials_memorizer =
+{
+	.partition_name	= NVS_DEFAULT_PART_NAME,
+	.namespace		= WIFI_APP_NAMESPACE,
+	.storage_key	= WIFI_APP_KEY,
+	.obj_addr		= &wifi_credentials,
+	.obj_syze		= sizeof(wifiApp_credentials_t),
+	.toSave			= FALSE
+};
 
 // Used for returning the WiFi configuration
-wifi_config_t wifi_config_v;
+static wifi_config_t wifi_config_v;
 
 // Used to track the number for retries when a connectiona attempt fails
 static uint8_t g_retry_number;
@@ -72,11 +80,11 @@ const int WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT			= BIT0;
 const int WIFI_APP_TRY_TO_CONNECT_BIT						= BIT1;
 const int WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT		= BIT2;
 
-EventBits_t eventBits;
+static EventBits_t eventBits;
 
 // Netif objects for the station and access point
-esp_netif_t * esp_netif_sta = NULL;
-esp_netif_t * esp_netif_ap  = NULL;
+static esp_netif_t * esp_netif_sta = NULL;
+static esp_netif_t * esp_netif_ap  = NULL;
 
 // Variable to check if the state Id is valid
 static uint8_t g_qtd_states;
@@ -107,38 +115,59 @@ static void wifiApp_sta_disconnectedLogInfo(void * eventData_p);
 // APP FUNCTIONS
 static void wifiApp_setup(void);
 static void wifiApp_task(void * pvParameters);
+static void wifiApp_setRealCredentialsToConnect(void);
 
-
+// MEMORY FUNCTIONS
+static esp_err_t wifiApp_loadCredentials(void);
+static void wifiApp_saveCredentials(void);
+static void wifiApp_forgetCredentials(void);
 
 
 /**************************
 **		  GETTERS		 **
 **************************/
 
-// Returns the Address of the first char of SSID string
-char * wifiApp_getStationSSID(void)
-{
-	return ssid;
-}
-
-
-// Returns the Address of the first char of password string
-char * wifiApp_getStationPassword(void)
-{
-	return passwd;
-}
-
-
-// Returns the WiFi configuration Address
-wifi_config_t * wifiApp_getWifiConfig(void)
-{
-	return &wifi_config_v;
-}
-
 // Gets the WiFi connection status
 uint8_t wifiApp_getConnStatus(void)
 {
 	return connectStatus;
+}
+
+
+void wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway)
+{
+	wifi_ap_record_t wifi_data;
+	ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&wifi_data));
+	sprintf(out_ssid, "%s", (char*)wifi_data.ssid);
+	
+	esp_netif_ip_info_t ip_info;
+	ESP_ERROR_CHECK(esp_netif_get_ip_info(esp_netif_sta, &ip_info));
+	esp_ip4addr_ntoa(&ip_info.ip,		out_ip, IP4ADDR_STRLEN_MAX);
+	esp_ip4addr_ntoa(&ip_info.netmask,	out_netmask, IP4ADDR_STRLEN_MAX);
+	esp_ip4addr_ntoa(&ip_info.gw,		out_gateway, IP4ADDR_STRLEN_MAX);
+}
+
+
+/**************************
+**		  SETTERS		 **
+**************************/
+
+// Sets the WiFi credentials info
+void wifiApp_setCredentials(char * ssid, char * passwd)
+{
+	memset(&wifi_credentials, 0x00, sizeof(wifiApp_credentials_t));
+
+    sprintf(wifi_credentials.ssid,		"%s", ssid);
+    sprintf(wifi_credentials.passwd,	"%s", passwd);
+}
+
+
+static void wifiApp_setRealCredentialsToConnect(void)
+{
+	memset(&wifi_config_v, 	  0x00, sizeof(wifi_config_t));
+
+	memcpy(&(wifi_config_v.sta.ssid),		&(wifi_credentials.ssid),	WIFI_SSID_LENGTH);
+	memcpy(&(wifi_config_v.sta.password),	&(wifi_credentials.passwd),	WIFI_PASSWORD_LENGTH);
 }
 
 
@@ -194,7 +223,7 @@ void wifiApp_setCallbacks(
  */
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_SIGNAL_READY)(wifi_app_queue_message_t * st)
 {
-	ESP_LOGE(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_SIGNAL_READY]);
+	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_SIGNAL_READY]);
 	
 	// ledRGB_wifi_disconnected();
 
@@ -249,7 +278,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_m
 	}
 	else
 	{
-		nvs_app_save_sta_creds();
+		wifiApp_saveCredentials();
 	}
 	if(eventBits & WIFI_APP_TRY_TO_CONNECT_BIT)
 	{
@@ -279,7 +308,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_USER_REQUESTED_STA_DISCONNECT)(wifi_ap
 	g_retry_number = MAX_CONNECTION_RETRIES;
 	
  	ESP_ERROR_CHECK(esp_wifi_disconnect());
-	nvs_app_clear_sta_creds();
+	wifiApp_forgetCredentials();
  	// ledRGB_wifi_disconnected();
 }
 
@@ -299,7 +328,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_DISCONNECTED)(wifi_app_queue_messa
 	{
 		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT USING SAVED CREDENTIALS");
 		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT);
-		nvs_app_clear_sta_creds();
+		wifiApp_forgetCredentials();
 	}
 	else if (eventBits & WIFI_APP_TRY_TO_CONNECT_BIT)
 	{
@@ -331,7 +360,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_DISCONNECTED)(wifi_app_queue_messa
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_LOAD_SAVED_CREDENTIALS)(wifi_app_queue_message_t * st)
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_LOAD_SAVED_CREDENTIALS]);
-	if (nvs_app_load_sta_creds())
+	if (ESP_OK == wifiApp_loadCredentials())
 	{
 		ESP_LOGI(TAG, "Loaded station configuration");
 		wifiApp_sta_connect();
@@ -630,7 +659,8 @@ static void wifiApp_softAP_config(void)
  */
 static void wifiApp_sta_connect(void)
 {
-	ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, wifiApp_getWifiConfig()));
+	wifiApp_setRealCredentialsToConnect();
+	ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config_v));
 	ESP_ERROR_CHECK(esp_wifi_connect());
 }
 
@@ -643,4 +673,27 @@ static void wifiApp_sta_disconnectedLogInfo(void * eventData_p)
 {
 	wifi_event_sta_disconnected_t *wifi_event = (wifi_event_sta_disconnected_t *)eventData_p;
     ESP_LOGI(TAG, "WiFi disconnected, reason: %d", wifi_event->reason);
+}
+
+
+
+/**************************
+**		  MEMORY		 **
+**************************/
+
+static esp_err_t wifiApp_loadCredentials(void)
+{
+	return hal_memory_load_blob(&wifi_credentials_memorizer);
+}
+
+
+static void wifiApp_saveCredentials(void)
+{
+	hal_memory_save_blob(&wifi_credentials_memorizer);
+}
+
+
+static void wifiApp_forgetCredentials(void)
+{
+	hal_memory_erase_key(&wifi_credentials_memorizer);
 }
