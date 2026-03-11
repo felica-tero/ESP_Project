@@ -138,7 +138,7 @@ typedef enum wifi_connect_status_e
  */
 uint8_t wifiApp_getConnStatus(void);
 
-void wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway);
+esp_err_t wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway);
 
 
 /**************************

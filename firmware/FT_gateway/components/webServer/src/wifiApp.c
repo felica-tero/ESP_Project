@@ -22,6 +22,12 @@
 #include "esp_netif_types.h"
 #include "esp_wifi_default.h"
 #include "esp_wifi_types_generic.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_wifi.h"
+#include "lwip/netdb.h"
+#include "lwip/sockets.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/idf_additions.h"
@@ -29,16 +35,11 @@
 #include "freertos/queue.h"
 #include "freertos/portmacro.h"
 
-#include "esp_err.h"
-#include "esp_log.h"
-#include "esp_wifi.h"
-#include "lwip/netdb.h"
-#include "lwip/sockets.h"
-
 // Personal libraries
 #include "wifiApp.h"
 #include "tasks_common.h"
 #include "hal_memory.h"
+#include "hal_system.h"
 
 
 /**************************
@@ -108,6 +109,8 @@ static void wifiApp_stateMachine_handler(wifi_app_queue_message_t * msg);
 static void wifiApp_event_handler(void * arg_p, esp_event_base_t event_base, int32_t eventId, void * eventData_p);
 static void wifiApp_eventHandler_init(void);
 static void wifiApp_defaultWifi_init(void);
+static void wifiApp_configMode(wifi_mode_t wifi_mode);
+static void wifiApp_onlySTA_config(void);
 static void wifiApp_softAP_config(void);
 static void wifiApp_sta_connect(void);
 static void wifiApp_sta_disconnectedLogInfo(void * eventData_p);
@@ -134,17 +137,26 @@ uint8_t wifiApp_getConnStatus(void)
 }
 
 
-void wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway)
+esp_err_t wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway)
 {
+	esp_err_t result = ESP_FAIL;
+
 	wifi_ap_record_t wifi_data;
-	ESP_ERROR_CHECK(esp_wifi_sta_get_ap_info(&wifi_data));
-	sprintf(out_ssid, "%s", (char*)wifi_data.ssid);
-	
-	esp_netif_ip_info_t ip_info;
-	ESP_ERROR_CHECK(esp_netif_get_ip_info(esp_netif_sta, &ip_info));
-	esp_ip4addr_ntoa(&ip_info.ip,		out_ip, IP4ADDR_STRLEN_MAX);
-	esp_ip4addr_ntoa(&ip_info.netmask,	out_netmask, IP4ADDR_STRLEN_MAX);
-	esp_ip4addr_ntoa(&ip_info.gw,		out_gateway, IP4ADDR_STRLEN_MAX);
+	if (ESP_OK == esp_wifi_sta_get_ap_info(&wifi_data))
+	{
+		sprintf(out_ssid, "%s", (char*)wifi_data.ssid);
+		
+		esp_netif_ip_info_t ip_info;
+		if (ESP_OK == esp_netif_get_ip_info(esp_netif_sta, &ip_info))
+		{
+			esp_ip4addr_ntoa(&ip_info.ip,		out_ip, IP4ADDR_STRLEN_MAX);
+			esp_ip4addr_ntoa(&ip_info.netmask,	out_netmask, IP4ADDR_STRLEN_MAX);
+			esp_ip4addr_ntoa(&ip_info.gw,		out_gateway, IP4ADDR_STRLEN_MAX);
+			
+			result = ESP_OK;
+		}
+	}
+	return result;
 }
 
 
@@ -182,14 +194,25 @@ static void wifiApp_setRealCredentialsToConnect(void)
  */
 static void wifiApp_setup(void)
 {
+	wifi_mode_t	 wifi_mode = 0;
+
 	// Initialize the event handler
 	wifiApp_eventHandler_init();
 	
 	// Initialize the TCP/IP stack and WiFi config
 	wifiApp_defaultWifi_init();
-	
-	// SoftAP config
-	wifiApp_softAP_config();
+
+	// If it already has SSID and passwd of network configured, it doesn't need AP.
+	if (ESP_OK == wifiApp_loadCredentials())
+	{
+		wifi_mode = WIFI_MODE_STA;
+	}
+	else
+	{
+		wifi_mode = WIFI_MODE_APSTA;
+	}
+
+	wifiApp_configMode(wifi_mode);
 }
 
 // Sets the callbacks functions
@@ -279,6 +302,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_m
 	else
 	{
 		wifiApp_saveCredentials();
+		halSys_restart();
 	}
 	if(eventBits & WIFI_APP_TRY_TO_CONNECT_BIT)
 	{
@@ -602,8 +626,48 @@ static void wifiApp_defaultWifi_init(void)
 	wifi_init_config_t wifi_init_config = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&wifi_init_config));
 	ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+}
+
+
+static void wifiApp_configMode(wifi_mode_t wifi_mode)
+{
 	esp_netif_sta = esp_netif_create_default_wifi_sta();
-	esp_netif_ap = esp_netif_create_default_wifi_ap();
+
+	switch (wifi_mode)
+	{
+		case WIFI_MODE_APSTA:
+			esp_netif_ap = esp_netif_create_default_wifi_ap();
+
+			// SoftAP config
+			wifiApp_softAP_config();
+		break;
+
+
+		case WIFI_MODE_STA:
+			wifiApp_onlySTA_config();
+		break;
+
+
+		default:
+			ESP_LOGE(TAG, "inconsistent wifi_mode on wifiApp_configMode funtion");
+		break;
+	}
+}
+
+
+static void wifiApp_onlySTA_config(void)
+{
+	// wifi_config_v.sta.listen_interval = WIFI_LISTENING_INTERVAL;
+	wifi_config_v.sta.scan_method     =	WIFI_ALL_CHANNEL_SCAN;
+	wifi_config_v.sta.sort_method     =	WIFI_CONNECT_AP_BY_SIGNAL;
+	
+	// Setting the mode as Station Mode
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+	ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config_v));	///> set configuration
+
+	wifi_config_v.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+	wifi_config_v.sta.failure_retry_cnt = 10;
 }
 
 
@@ -619,21 +683,21 @@ static void wifiApp_softAP_config(void)
 		.ap = {
 			.ssid 			= 	WIFI_AP_SSID,
 			.ssid_len 		=	strlen(WIFI_AP_SSID),
-			.password 		=	WIFI_AP_PASSWORD,
+			// .password 		=	WIFI_AP_PASSWORD,
 			.channel 		=	WIFI_AP_CHANNEL,
 			.ssid_hidden	=	WIFI_AP_SSID_HIDDEN,
-			.authmode		=	WIFI_AUTH_WPA2_PSK,
+			.authmode		=	WIFI_AUTH_OPEN,
 			.max_connection	=	WIFI_AP_MAX_CONNECTIONS,
 			.beacon_interval=	WIFI_AP_BEACON_INTERVAL,
 		},
 	};
 	
+	// Stopping the DHCP server before updating it
+	esp_netif_dhcps_stop(esp_netif_ap);
+	
 	// Configure DHCP for the AP
 	esp_netif_ip_info_t ap_ip_info;
 	memset(&ap_ip_info, 0x00, sizeof(ap_ip_info));
-	
-	// Stopping the DHCP server before updating it
-	esp_netif_dhcps_stop(esp_netif_ap);
 	
 	// Assign access point's static IP, GW and Netmask
 	//(converts string, to the wanted binary form)

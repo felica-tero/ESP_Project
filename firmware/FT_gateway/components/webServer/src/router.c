@@ -243,9 +243,10 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(get_wifi_connect_info_json)(httpd
 
 	if (httpServer_get_wifiConnectStatus() == WIFI_STATUS_CONNECT_SUCCESS)
 	{
-		wifiApp_getWifiConnectInfo(ssid, ip, netmask, gateway);
-
-		sprintf(ipInfoJSON, "{\"ip\":\"%s\",\"netmask\":\"%s\",\"gateway\":\"%s\",\"ap\":\"%s\"}", ip, netmask, gateway, ssid);
+		if (ESP_OK == wifiApp_getWifiConnectInfo(ssid, ip, netmask, gateway))
+		{
+			sprintf(ipInfoJSON, "{\"ip\":\"%s\",\"netmask\":\"%s\",\"gateway\":\"%s\",\"ap\":\"%s\"}", ip, netmask, gateway, ssid);
+		}
 	}
 	
 	httpd_resp_set_type(req, "application/json");
