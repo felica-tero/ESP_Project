@@ -54,15 +54,6 @@ static const char TAG[] = "Main";
 static void mainLoop_task(void);
 static void vTaskLoop(void * pvParameters);
 
-
-static void main_wifiInitialized_callback(void);
-static void main_wifiSignalReady_callback(void);
-static void main_wifiStaConnecting_callback(void);
-static void main_wifiStaConnected_callback(void);
-static void main_wifiStaConnectFail_callback(void);
-static void main_wifiStaDisconnect_callback(void);
-
-
 void app_main(void)
 {
 	// TODO: separate the init functions of tasks, to be called here
@@ -75,15 +66,6 @@ void app_main(void)
 		ret = nvs_flash_init();
 	}
 	ESP_ERROR_CHECK(ret);
-
-	wifiApp_setupCallbacks(
-		main_wifiInitialized_callback,
-		main_wifiSignalReady_callback,
-		main_wifiStaConnecting_callback,
-		main_wifiStaConnected_callback,
-		main_wifiStaConnectFail_callback,
-		main_wifiStaDisconnect_callback
-	);
 	
 	// Initialize the LEDS
 	ledRGB_ledPWM_init();
@@ -103,7 +85,9 @@ void app_main(void)
 	irrigator_setup();
 
 	// Main Infinite Loop
+	#if DISPLAY_OLED_PRESENT == TRUE
 	mainLoop_task();
+	#endif
 }
 
 
@@ -139,46 +123,4 @@ static void mainLoop_task(void)
 				NULL,
 				MAIN_LOOP_TASK_CORE);
 #endif
-}
-
-
-static void main_wifiInitialized_callback(void)
-{
-	// Start Wifi started LED
-	ledRGB_wifiApp_started();
-}
-
-
-static void main_wifiSignalReady_callback(void)
-{
-	httpServer_start();
-	ledRGB_wifi_disconnected();
-}
-
-
-static void main_wifiStaConnecting_callback(void)
-{
-	httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_INIT);
-}
-
-
-static void main_wifiStaConnected_callback(void)
-{
-	ledRGB_wifi_connected();
-	// displayOled_printHeaderNBody("CONNECTED!", "");
- 	httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_SUCCESS);
-	dateTimeNTP_setup();
-}
-
-
-static void main_wifiStaConnectFail_callback(void)
-{
-	httpServer_monitor_sendMessage(HTTP_WIFI_CONNECT_FAIL);
-}
-
-
-static void main_wifiStaDisconnect_callback(void)
-{
- 	ledRGB_wifi_disconnected();
-	httpServer_monitor_sendMessage(HTTP_WIFI_USER_DISCONNECT);
 }

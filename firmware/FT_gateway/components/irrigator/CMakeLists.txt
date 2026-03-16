@@ -1,8 +1,6 @@
 idf_component_register(
-    SRCS    "irrigator.c"
-            "pipeWorker"
-            "uart_sensorUmidity"
+    SRC_DIRS "src"
     INCLUDE_DIRS "include"
-    REQUIRES    hardware
+    REQUIRES    personal_hal
                 projectConfig
 )

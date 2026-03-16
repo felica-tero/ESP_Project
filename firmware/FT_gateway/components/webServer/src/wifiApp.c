@@ -3,7 +3,7 @@
  * @brief 
  * @details
  * @date 16 de nov. de 2024
- * @author Luiz Carlos
+ * @author Isabella Vecchi
  */
 
 
@@ -22,6 +22,12 @@
 #include "esp_netif_types.h"
 #include "esp_wifi_default.h"
 #include "esp_wifi_types_generic.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include "esp_wifi.h"
+#include "lwip/netdb.h"
+#include "lwip/sockets.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/idf_additions.h"
@@ -29,17 +35,12 @@
 #include "freertos/queue.h"
 #include "freertos/portmacro.h"
 
-#include "esp_err.h"
-#include "esp_log.h"
-#include "esp_wifi.h"
-#include "lwip/netdb.h"
-#include "lwip/sockets.h"
-
 // Personal libraries
 #include "wifiApp.h"
-#include "ledRGB.h"
+#include "projectConfig.h"
 #include "tasks_common.h"
-#include "nvsApp.h"
+#include "hal_memory.h"
+#include "hal_system.h"
 
 
 /**************************
@@ -51,31 +52,41 @@
 // Tag used for ESP serial console messages
 static const char TAG[] = "wifi_app";
 
-static wifiApp_callbacks_t wifiApp_callbacks = {0};
+// Wifi connected events callbacks
+static wifi_fn_callbacks_t wifi_fn_callbacks = {0};
 
 // Alocating Station WiFi credencials
-char ssid[WIFI_SSID_LENGTH];
-char passwd[WIFI_PASSWORD_LENGTH];
+static wifiApp_credentials_t wifi_credentials = {0};
+static mem_address_saver_t wifi_credentials_memorizer =
+{
+	.partition_name	= NVS_DEFAULT_PART_NAME,
+	.namespace		= WIFI_APP_NAMESPACE,
+	.storage_key	= WIFI_APP_KEY,
+	.obj_addr		= &wifi_credentials,
+	.obj_syze		= sizeof(wifiApp_credentials_t),
+	.toSave			= FALSE
+};
 
 // Used for returning the WiFi configuration
-wifi_config_t wifi_config_v;
+static wifi_config_t wifi_config_v;
 
 // Used to track the number for retries when a connectiona attempt fails
 static uint8_t g_retry_number;
+static wifi_connect_status_t connectStatus = 0;
 
 /**
  * @brief WiFi application event group handle and status bits
  */
 static EventGroupHandle_t wifi_app_event_group;
 const int WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT			= BIT0;
-const int WIFI_APP_STA_TRY_TO_CONNECT_BIT			= BIT1;
+const int WIFI_APP_TRY_TO_CONNECT_BIT						= BIT1;
 const int WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT		= BIT2;
 
-EventBits_t eventBits;
+static EventBits_t eventBits;
 
 // Netif objects for the station and access point
-esp_netif_t * esp_netif_sta = NULL;
-esp_netif_t * esp_netif_ap  = NULL;
+static esp_netif_t * esp_netif_sta = NULL;
+static esp_netif_t * esp_netif_ap  = NULL;
 
 // Variable to check if the state Id is valid
 static uint8_t g_qtd_states;
@@ -91,7 +102,7 @@ static QueueHandle_t wifi_app_queue_handle_t;
 	
 // STATE MACHINE
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_SIGNAL_READY)(wifi_app_queue_message_t * st);
-static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_TRY_TO_CONNECT)(wifi_app_queue_message_t * st);
+static void WIFI_STATE_FUNC_NAME(WIFI_APP_TRY_TO_CONNECT)(wifi_app_queue_message_t * st);
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_message_t * st);
 static void wifiApp_stateMachine_handler(wifi_app_queue_message_t * msg);
 
@@ -99,6 +110,8 @@ static void wifiApp_stateMachine_handler(wifi_app_queue_message_t * msg);
 static void wifiApp_event_handler(void * arg_p, esp_event_base_t event_base, int32_t eventId, void * eventData_p);
 static void wifiApp_eventHandler_init(void);
 static void wifiApp_defaultWifi_init(void);
+static void wifiApp_configMode(wifi_mode_t wifi_mode);
+static void wifiApp_onlySTA_config(void);
 static void wifiApp_softAP_config(void);
 static void wifiApp_sta_connect(void);
 static void wifiApp_sta_disconnectedLogInfo(void * eventData_p);
@@ -106,57 +119,68 @@ static void wifiApp_sta_disconnectedLogInfo(void * eventData_p);
 // APP FUNCTIONS
 static void wifiApp_setup(void);
 static void wifiApp_task(void * pvParameters);
+static void wifiApp_setRealCredentialsToConnect(void);
 
-
-
-
-/**************************
-**		  GETTERS		 **
-**************************/
-
-// Returns the Address of the first char of SSID string
-char * wifiApp_getStationSSID(void)
-{
-	return ssid;
-}
-
-// Returns the Address of the first char of password string
-char * wifiApp_getStationPassword(void)
-{
-	return passwd;
-}
-
-// Returns the WiFi configuration Address
-wifi_config_t * wifiApp_getWifiConfig(void)
-{
-	return &wifi_config_v;
-}
-
+// MEMORY FUNCTIONS
+static esp_err_t wifiApp_loadCredentials(void);
+static void wifiApp_saveCredentials(void);
+static void wifiApp_forgetCredentials(void);
 
 
 /**************************
 **		  GETTERS		 **
 **************************/
 
-/**
- * @brief Setup Callbacks
- * @details
- */
-void wifiApp_setupCallbacks(
-	wifi_event_callback_t wifi_init,
-	wifi_event_callback_t wifi_signal_ready,
-	wifi_event_callback_t wifi_sta_connecting,
-	wifi_event_callback_t wifi_sta_connected,
-	wifi_event_callback_t wifi_sta_connectFail,
-	wifi_event_callback_t wifi_sta_disconnect
-)
+// Gets the WiFi connection status
+uint8_t wifiApp_getConnStatus(void)
 {
-	wifiApp_callbacks.wifi_init				= wifi_init;
-	wifiApp_callbacks.wifi_signal_ready		= wifi_signal_ready;
-	wifiApp_callbacks.wifi_sta_connecting	= wifi_sta_connecting;
-	wifiApp_callbacks.wifi_sta_connected	= wifi_sta_connected;
-	wifiApp_callbacks.wifi_sta_connectFail	= wifi_sta_connectFail;
-	wifiApp_callbacks.wifi_sta_disconnect	= wifi_sta_disconnect;
+	return connectStatus;
+}
+
+
+esp_err_t wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway)
+{
+	esp_err_t result = ESP_FAIL;
+
+	wifi_ap_record_t wifi_data;
+	if (ESP_OK == esp_wifi_sta_get_ap_info(&wifi_data))
+	{
+		sprintf(out_ssid, "%s", (char*)wifi_data.ssid);
+		
+		esp_netif_ip_info_t ip_info;
+		if (ESP_OK == esp_netif_get_ip_info(esp_netif_sta, &ip_info))
+		{
+			esp_ip4addr_ntoa(&ip_info.ip,		out_ip, IP4ADDR_STRLEN_MAX);
+			esp_ip4addr_ntoa(&ip_info.netmask,	out_netmask, IP4ADDR_STRLEN_MAX);
+			esp_ip4addr_ntoa(&ip_info.gw,		out_gateway, IP4ADDR_STRLEN_MAX);
+			
+			result = ESP_OK;
+		}
+	}
+	return result;
+}
+
+
+/**************************
+**		  SETTERS		 **
+**************************/
+
+// Sets the WiFi credentials info
+void wifiApp_setCredentials(char * ssid, char * passwd)
+{
+	memset(&wifi_credentials, 0x00, sizeof(wifiApp_credentials_t));
+
+    sprintf(wifi_credentials.ssid,		"%s", ssid);
+    sprintf(wifi_credentials.passwd,	"%s", passwd);
+}
+
+
+static void wifiApp_setRealCredentialsToConnect(void)
+{
+	memset(&wifi_config_v, 	  0x00, sizeof(wifi_config_t));
+
+	memcpy(&(wifi_config_v.sta.ssid),		&(wifi_credentials.ssid),	WIFI_SSID_LENGTH);
+	memcpy(&(wifi_config_v.sta.password),	&(wifi_credentials.passwd),	WIFI_PASSWORD_LENGTH);
 }
 
 
@@ -171,15 +195,44 @@ void wifiApp_setupCallbacks(
  */
 static void wifiApp_setup(void)
 {
+	wifi_mode_t	 wifi_mode = 0;
+
 	// Initialize the event handler
 	wifiApp_eventHandler_init();
 	
 	// Initialize the TCP/IP stack and WiFi config
 	wifiApp_defaultWifi_init();
-	
-	// SoftAP config
-	wifiApp_softAP_config();
+
+	// If it already has SSID and passwd of network configured, it doesn't need AP.
+	// if (ESP_OK == wifiApp_loadCredentials())
+	// {
+	// 	wifi_mode = WIFI_MODE_STA;
+	// }
+	// else
+	// {
+	// 	wifi_mode = WIFI_MODE_APSTA;
+	// }
+
+	wifiApp_configMode(WIFI_MODE_APSTA);
 }
+
+// Sets the callbacks functions
+void wifiApp_setCallbacks(
+	wifi_event_callback_t signal_ready_cb,
+	wifi_event_callback_t sta_connected_cb
+)
+{
+	if (NULL != signal_ready_cb)
+	{
+		wifi_fn_callbacks.signal_ready_cb = signal_ready_cb;
+	}
+
+	if (NULL != sta_connected_cb)
+	{
+		wifi_fn_callbacks.sta_connected_cb = sta_connected_cb;
+	}
+}
+
 
 
 /**************************
@@ -196,23 +249,25 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_SIGNAL_READY)(wifi_app_queue_message_t
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_SIGNAL_READY]);
 	
-	if (NULL != wifiApp_callbacks.wifi_signal_ready)
+	// ledRGB_wifi_disconnected();
+
+	if(wifi_fn_callbacks.signal_ready_cb != NULL)
 	{
-		wifiApp_callbacks.wifi_signal_ready();
+		wifi_fn_callbacks.signal_ready_cb();
 	}
 }
 
 /**
  * @brief State Machine Function Definition according to sm_wifi_app_function
  * function that defines the behavior on
- * [WIFI_APP_STA_TRY_TO_CONNECT] state
+ * [WIFI_APP_TRY_TO_CONNECT] state
  * @details
  */
-static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_TRY_TO_CONNECT)(wifi_app_queue_message_t * st)
+static void WIFI_STATE_FUNC_NAME(WIFI_APP_TRY_TO_CONNECT)(wifi_app_queue_message_t * st)
 {
-	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_STA_TRY_TO_CONNECT]);
+	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_TRY_TO_CONNECT]);
 
-	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_STA_TRY_TO_CONNECT_BIT);
+	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_TRY_TO_CONNECT_BIT);
 	
 	// Attempt a connection
 	wifiApp_sta_connect();
@@ -220,11 +275,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_TRY_TO_CONNECT)(wifi_app_queue_mes
 	// Set current number of retries to zero
 	g_retry_number = 0;
 	
-	// Let the HTTP server know about the connection attempt
-	if (NULL != wifiApp_callbacks.wifi_sta_connecting)
-	{
-		wifiApp_callbacks.wifi_sta_connecting();
-	}
+	connectStatus = WIFI_STATUS_CONNECTING;
 }
 
 /**
@@ -237,6 +288,10 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_m
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_STA_CONNECTED_GOT_IP]);
 	
+ 	// ledRGB_wifi_connected();
+	// displayOled_printHeaderNBody("CONNECTED!", "");
+	connectStatus = WIFI_STATUS_CONNECT_SUCCESS;
+	
 	eventBits = xEventGroupGetBits(wifi_app_event_group);
 
 	// Save Sta creds only if connecting from the http server (not loaded from NVS)
@@ -247,16 +302,17 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_CONNECTED_GOT_IP)(wifi_app_queue_m
 	}
 	else
 	{
-		nvs_app_save_sta_creds();
+		wifiApp_saveCredentials();
+		// halSys_restart();
 	}
-	if(eventBits & WIFI_APP_STA_TRY_TO_CONNECT_BIT)
+	if(eventBits & WIFI_APP_TRY_TO_CONNECT_BIT)
 	{
-		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_STA_TRY_TO_CONNECT_BIT);
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_TRY_TO_CONNECT_BIT);
 	}
 
-	if (NULL != wifiApp_callbacks.wifi_sta_connected)
+	if(wifi_fn_callbacks.sta_connected_cb != NULL)
 	{
-		wifiApp_callbacks.wifi_sta_connected();
+		wifi_fn_callbacks.sta_connected_cb();
 	}
 }
 
@@ -272,16 +328,13 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_USER_REQUESTED_STA_DISCONNECT)(wifi_ap
 	
 	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT);
 
+ 	// ledRGB_wifi_disconnect();
 	// so it doesn't try to reconnect when we hit the button disconnect
 	g_retry_number = MAX_CONNECTION_RETRIES;
 	
  	ESP_ERROR_CHECK(esp_wifi_disconnect());
-	nvs_app_clear_sta_creds();
-
-	if (NULL != wifiApp_callbacks.wifi_sta_disconnect)
-	{
-		wifiApp_callbacks.wifi_sta_disconnect();
-	}
+	wifiApp_forgetCredentials();
+ 	// ledRGB_wifi_disconnected();
 }
 
 /**
@@ -300,33 +353,27 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_DISCONNECTED)(wifi_app_queue_messa
 	{
 		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT USING SAVED CREDENTIALS");
 		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_CONNECTING_USING_SAVED_CREDS_BIT);
-		nvs_app_clear_sta_creds();
+		wifiApp_forgetCredentials();
 	}
-	else if (eventBits & WIFI_APP_STA_TRY_TO_CONNECT_BIT)
+	else if (eventBits & WIFI_APP_TRY_TO_CONNECT_BIT)
 	{
 		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT FROM THE HTTP SERVER");
-		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_STA_TRY_TO_CONNECT_BIT);
-
-		if (NULL != wifiApp_callbacks.wifi_sta_connectFail)
-		{
-			wifiApp_callbacks.wifi_sta_connectFail();
-		}
+		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_TRY_TO_CONNECT_BIT);
+		connectStatus = WIFI_STATUS_CONNECT_SUCCESS;
 	}
 	else if (eventBits & WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT)
 	{
 		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: USER REQUESTED DISCONECTION");
 		xEventGroupClearBits(wifi_app_event_group, WIFI_APP_USER_REQUESTED_STA_DISCONNECT_BIT);
-
-		if (NULL != wifiApp_callbacks.wifi_sta_disconnect)
-		{
-			wifiApp_callbacks.wifi_sta_disconnect();
-		}
+		connectStatus = WIFI_STATUS_DISCONNECTED;
 	}
 	else
 	{
 		ESP_LOGI(TAG, "WIFI_APP_STA_DISCONNECTED: ATTEMPT FAILED, CHECK WIFI ACESS POINT AVAILABITITY");
 		/// @note Adjust this case to your needs - maybe you want to keep trying to connect...
 	}
+	
+ 	// ledRGB_wifi_disconnected();
 }
 
 /**
@@ -338,7 +385,7 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_STA_DISCONNECTED)(wifi_app_queue_messa
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_LOAD_SAVED_CREDENTIALS)(wifi_app_queue_message_t * st)
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_LOAD_SAVED_CREDENTIALS]);
-	if (nvs_app_load_sta_creds())
+	if (ESP_OK == wifiApp_loadCredentials())
 	{
 		ESP_LOGI(TAG, "Loaded station configuration");
 		wifiApp_sta_connect();
@@ -431,10 +478,8 @@ void wifiApp_start(void)
 {
 	ESP_LOGI(TAG, "STARTING WIFI APPLICATION");
 	
-	if (NULL != wifiApp_callbacks.wifi_init)
-	{
-		wifiApp_callbacks.wifi_init();
-	}
+	// Start Wifi started LED
+	// ledRGB_wifiApp_started();
 	
 	// Disable default WiFi logging messages
 	esp_log_level_set("WiFi", ESP_LOG_NONE);
@@ -582,8 +627,48 @@ static void wifiApp_defaultWifi_init(void)
 	wifi_init_config_t wifi_init_config = WIFI_INIT_CONFIG_DEFAULT();
 	ESP_ERROR_CHECK(esp_wifi_init(&wifi_init_config));
 	ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+}
+
+
+static void wifiApp_configMode(wifi_mode_t wifi_mode)
+{
 	esp_netif_sta = esp_netif_create_default_wifi_sta();
-	esp_netif_ap = esp_netif_create_default_wifi_ap();
+
+	switch (wifi_mode)
+	{
+		case WIFI_MODE_APSTA:
+			esp_netif_ap = esp_netif_create_default_wifi_ap();
+
+			// SoftAP config
+			wifiApp_softAP_config();
+		break;
+
+
+		case WIFI_MODE_STA:
+			wifiApp_onlySTA_config();
+		break;
+
+
+		default:
+			ESP_LOGE(TAG, "inconsistent wifi_mode on wifiApp_configMode funtion");
+		break;
+	}
+}
+
+
+static void wifiApp_onlySTA_config(void)
+{
+	// wifi_config_v.sta.listen_interval = WIFI_LISTENING_INTERVAL;
+	wifi_config_v.sta.scan_method     =	WIFI_ALL_CHANNEL_SCAN;
+	wifi_config_v.sta.sort_method     =	WIFI_CONNECT_AP_BY_SIGNAL;
+	
+	// Setting the mode as Station Mode
+	ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+	ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config_v));	///> set configuration
+
+	wifi_config_v.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+	wifi_config_v.sta.failure_retry_cnt = 10;
 }
 
 
@@ -599,21 +684,21 @@ static void wifiApp_softAP_config(void)
 		.ap = {
 			.ssid 			= 	WIFI_AP_SSID,
 			.ssid_len 		=	strlen(WIFI_AP_SSID),
-			.password 		=	WIFI_AP_PASSWORD,
+			// .password 		=	WIFI_AP_PASSWORD,
 			.channel 		=	WIFI_AP_CHANNEL,
 			.ssid_hidden	=	WIFI_AP_SSID_HIDDEN,
-			.authmode		=	WIFI_AUTH_WPA2_PSK,
+			.authmode		=	WIFI_AUTH_OPEN,
 			.max_connection	=	WIFI_AP_MAX_CONNECTIONS,
 			.beacon_interval=	WIFI_AP_BEACON_INTERVAL,
 		},
 	};
 	
+	// Stopping the DHCP server before updating it
+	esp_netif_dhcps_stop(esp_netif_ap);
+	
 	// Configure DHCP for the AP
 	esp_netif_ip_info_t ap_ip_info;
 	memset(&ap_ip_info, 0x00, sizeof(ap_ip_info));
-	
-	// Stopping the DHCP server before updating it
-	esp_netif_dhcps_stop(esp_netif_ap);
 	
 	// Assign access point's static IP, GW and Netmask
 	//(converts string, to the wanted binary form)
@@ -639,7 +724,8 @@ static void wifiApp_softAP_config(void)
  */
 static void wifiApp_sta_connect(void)
 {
-	ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, wifiApp_getWifiConfig()));
+	wifiApp_setRealCredentialsToConnect();
+	ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config_v));
 	ESP_ERROR_CHECK(esp_wifi_connect());
 }
 
@@ -652,4 +738,27 @@ static void wifiApp_sta_disconnectedLogInfo(void * eventData_p)
 {
 	wifi_event_sta_disconnected_t *wifi_event = (wifi_event_sta_disconnected_t *)eventData_p;
     ESP_LOGI(TAG, "WiFi disconnected, reason: %d", wifi_event->reason);
+}
+
+
+
+/**************************
+**		  MEMORY		 **
+**************************/
+
+static esp_err_t wifiApp_loadCredentials(void)
+{
+	return hal_memory_load_blob(&wifi_credentials_memorizer);
+}
+
+
+static void wifiApp_saveCredentials(void)
+{
+	hal_memory_save_blob(&wifi_credentials_memorizer);
+}
+
+
+static void wifiApp_forgetCredentials(void)
+{
+	hal_memory_erase_key(&wifi_credentials_memorizer);
 }

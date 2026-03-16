@@ -80,6 +80,7 @@ static void dateTimeNTP_update_task(void *pvParameter);
  */
 static void ntp_fetchData(void);
 
+static void dateTimeNTP_wifiApp_connectedEvents(void);
 
 
 /**************************
@@ -96,6 +97,15 @@ char* dateTimeNTP_getData(void)
 }
 
 void dateTimeNTP_setup(void)
+{
+	// Set the wifi connected event callback function
+	wifiApp_setCallbacks(
+        NULL,
+        dateTimeNTP_wifiApp_connectedEvents
+    );
+}
+
+static void dateTimeNTP_wifiApp_connectedEvents(void)
 {
 	ESP_LOGI(TAG, "WiFi Application Connected!");
 

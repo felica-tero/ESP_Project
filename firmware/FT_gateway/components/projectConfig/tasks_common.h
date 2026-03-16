@@ -3,7 +3,7 @@
  * @brief 
  * @details
  * @date 16 de nov. de 2024
- * @author Luiz Carlos
+ * @author Isabella Vecchi
  */
 
 #ifndef MAIN_TASKS_COMMON_H_

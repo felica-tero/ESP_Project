@@ -2,7 +2,7 @@
  * @file httpServer.h
  * @brief 
  * @details
- * @author Luiz Carlos
+ * @author Isabella Vecchi
  * @date 2024-11-17
  */
 
@@ -57,17 +57,6 @@
 **		STRUCTURES		 **
 **************************/
 
-/**
- * Connection status for WiFi
- */
-typedef enum http_server_wifi_connect_status
-{
-	NONE = 0,
-	HTTP_WIFI_STATUS_CONNECTING,
-	HTTP_WIFI_STATUS_CONNECT_FAILED,
-	HTTP_WIFI_STATUS_CONNECT_SUCCESS,
-	HTTP_WIFI_STATUS_DISCONNECTED,
-} http_server_wifi_connect_status_e;
 
 /**
  * Enum for the HTTP monitor
@@ -87,6 +76,9 @@ typedef struct http_server_queue_message_s
 	http_server_state_e msgId;
 } http_server_queue_message_t;
 
+typedef void (*api_routes_register_fn)(void);
+
+
 /**************************
 **		FUNCTIONS		 **
 **************************/
@@ -98,6 +90,15 @@ typedef struct http_server_queue_message_s
  */
 BaseType_t httpServer_monitor_sendMessage(http_server_state_e msgId);
  
+
+/**
+ * Setup the HTTP server.
+ */
+void httpServer_setup(api_routes_register_fn apiFunction);
+
+
+void httpServer_tryToConnect(char * ssid, char * passwd);
+
 /**
  * Starts the HTTP server.
  */
@@ -119,11 +120,11 @@ void ota_fw_update_reset_callback(void *arg);
 **************************/
 
 /**
- * @brief Returns the g_wifi_connect_status
+ * @brief Returns the wifi_connect_status_t
  * 
  * @return http_server_wifi_connect_status_e * 
  */
-http_server_wifi_connect_status_e * httpServer_get_wifiConnectStatus(void);
+uint8_t httpServer_get_wifiConnectStatus(void);
 
 /**
  * Function to get routers from another file to be declared here.
@@ -132,7 +133,7 @@ http_server_wifi_connect_status_e * httpServer_get_wifiConnectStatus(void);
  * @param apiFunction a function from an upper layer, where other
  * uri routes are declared with the httpServer_uri_registerHandler function.
  */
-void httpServer_setApiRoutes(void (*function)(void));
+void httpServer_setApiRoutes_cb(api_routes_register_fn);
 
 /**
  * Function to register an HTTP uri.

@@ -3,7 +3,7 @@
  * @brief 
  * @details
  * @date 16 de nov. de 2024
- * @author Luiz Carlos
+ * @author Isabella Vecchi
  */
 
 #ifndef MAIN_WIFIAPP_H_
@@ -27,6 +27,8 @@
 **		DEFINITIONS		 **
 **************************/
 
+#define WIFI_APP_NAMESPACE	"wifi"
+#define WIFI_APP_KEY		"creds"
 
 /**
  * @brief Macro to define the function name of each state
@@ -40,18 +42,24 @@
  * @details
  */
 #define X_MACRO_WIFI_STATE_LIST 				\
-	X(0, WIFI_APP_SIGNAL_READY				) \
-	X(1, WIFI_APP_STA_TRY_TO_CONNECT	) \
+	X(0, WIFI_APP_SIGNAL_READY					) \
+	X(1, WIFI_APP_TRY_TO_CONNECT				) \
 	X(2, WIFI_APP_STA_CONNECTED_GOT_IP			) \
 	X(3, WIFI_APP_USER_REQUESTED_STA_DISCONNECT	) \
 	X(4, WIFI_APP_STA_DISCONNECTED				) \
-	X(5, WIFI_APP_LOAD_SAVED_CREDENTIALS)
+	X(5, WIFI_APP_LOAD_SAVED_CREDENTIALS		)
 
 
 
 /**************************
 **		STRUCTURES		 **
 **************************/
+
+typedef struct wifiApp_credentials_s
+{
+	char ssid[WIFI_SSID_LENGTH];
+	char passwd[WIFI_PASSWORD_LENGTH];
+} wifiApp_credentials_t;
 
 /**
  * @brief Wifi callback function type
@@ -99,42 +107,46 @@ typedef struct sm_wifi_table_fn_s
 	sm_wifi_app_function func;
 } sm_wifi_table_fn_t;
 
-typedef struct wifiApp_callbacks_s
-{
-	wifi_event_callback_t wifi_init;
-	wifi_event_callback_t wifi_signal_ready;
-	wifi_event_callback_t wifi_sta_connecting;
-	wifi_event_callback_t wifi_sta_connected;
-	wifi_event_callback_t wifi_sta_connectFail;
-	wifi_event_callback_t wifi_sta_disconnect;
-} wifiApp_callbacks_t;
 
+typedef struct wifi_fn_callbacks_s
+{
+	wifi_event_callback_t	signal_ready_cb;
+	wifi_event_callback_t	sta_connected_cb;
+} wifi_fn_callbacks_t;
+
+
+/**
+ * Connection status for WiFi
+ */
+typedef enum wifi_connect_status_e
+{
+	NONE = 0,
+	WIFI_STATUS_CONNECTING,
+	WIFI_STATUS_CONNECT_FAILED,
+	WIFI_STATUS_CONNECT_SUCCESS,
+	WIFI_STATUS_DISCONNECTED,
+} wifi_connect_status_t;
 
 /**************************
 **		  GETTERS		 **
 **************************/
 
 /**
- * @brief Returns the Address of the first char of SSID string
+ * @brief Gets the WiFi connection status
  * @details
- * @return char * the Address of the first char of SSID string
+ * @return wifi_connect_status_t 
  */
-char * wifiApp_getStationSSID(void);
+uint8_t wifiApp_getConnStatus(void);
 
-/**
- * @brief Returns the Address of the first char of password string
- * @details
- * @return char * the Address of the first char of password string
- */
-char * wifiApp_getStationPassword(void);
+esp_err_t wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway);
 
-/**
- * @brief Gets the WiFi configuration
- * @details
- * @return wifi_config_t* 
- */
-wifi_config_t * wifiApp_getWifiConfig(void);
 
+/**************************
+**		  SETTERS		 **
+**************************/
+
+// Sets the WiFi credentials info
+void wifiApp_setCredentials(char * ssid, char * passwd);
 
 
 /**************************
@@ -155,16 +167,13 @@ BaseType_t wifiApp_sendMessage(sm_wifi_app_state_e msgId);
 void wifiApp_start(void);
 
 /**
- * @brief Setup Callbacks
+ * @brief Sets the callbacks functions
  * @details
+ * @param wifi_fn_callbacks_t functions 
  */
-void wifiApp_setupCallbacks(
-	wifi_event_callback_t wifi_init,
-	wifi_event_callback_t wifi_signal_ready,
-	wifi_event_callback_t wifi_sta_connecting,
-	wifi_event_callback_t wifi_sta_connected,
-	wifi_event_callback_t wifi_sta_connectFail,
-	wifi_event_callback_t wifi_sta_disconnect
+void wifiApp_setCallbacks(
+	wifi_event_callback_t signal_ready_cb,
+	wifi_event_callback_t sta_connected_cb
 );
 
 

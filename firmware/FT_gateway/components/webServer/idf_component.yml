@@ -1,0 +1,5 @@
+## IDF Component Manager Manifest File
+name: webServer
+version: 1.0.0
+dependencies:
+  espressif/mdns: '*'

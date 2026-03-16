@@ -2,7 +2,7 @@
  * @file httpServer.c
  * @brief 
  * @details
- * @author Luiz Carlos
+ * @author Isabella Vecchi
  * @date 2024-11-17
  */
 
@@ -35,9 +35,6 @@
 // Tag used for ESP serial console messages
 static const char TAG[] = "http_server";
 
-// WiFi connect status
-http_server_wifi_connect_status_e g_wifi_connect_status = NONE;
-
 // HTTP server task handle
 static httpd_handle_t http_server_handle = NULL; ///> used on start and stop server
 
@@ -49,27 +46,14 @@ static httpd_handle_t http_server_handle = NULL; ///> used on start and stop ser
 #undef X
 	
 	/* Function Pointers */
-void (* httpServer_uri_setApiRoutes_fp)(void);
-
-
-	/* FreeRTOS Structures */
-
-// HTTP server monitor task handle
-static TaskHandle_t task_http_server_monitor = NULL;
-
-// Queue handle used to manipulate the main queue of events
-static QueueHandle_t http_server_monitor_queue_handle;
+api_routes_register_fn httpServer_uri_setApiRoutes_callback = NULL;
 
 
 	/* Static Functions */
 
-// FreeRTOS functions
-static void httpServer_freeRTOS_monitor(void * parameter);
-static void httpServer_freeRTOS_setup(void);
-static void httpServer_freeRTOS_endTask(void);
-
 // App functions
 static void httpServer_configure(httpd_config_t * config);
+static void httpServer_setWifiCallback(void);
 static void httpServer_uri_setFilesHandlersAndRoutes(void);
 static void httpServer_uri_setRoutesFromOtherFiles(void);
 
@@ -79,16 +63,16 @@ static void httpServer_uri_setRoutesFromOtherFiles(void);
 ** UPPERLAYER FUNCTIONS	 **
 **************************/
 
-// Returns the g_wifi_connect_status
-http_server_wifi_connect_status_e * httpServer_get_wifiConnectStatus(void)
+// Returns the WIFI connectStatus
+uint8_t httpServer_get_wifiConnectStatus(void)
 {
-	return &g_wifi_connect_status;
+	return wifiApp_getConnStatus();
 }
 
 // Function to get routers from another file to be declared here.
-void httpServer_setApiRoutes(void (*apiFunction)(void))
+void httpServer_setApiRoutes_cb(void (*apiFunction)(void))
 {
-	httpServer_uri_setApiRoutes_fp = apiFunction;
+	httpServer_uri_setApiRoutes_callback = apiFunction;
 }
 
 // Function to register an HTTP uri.
@@ -104,104 +88,30 @@ void httpServer_uri_registerHandler(const char* route, httpd_method_t method, es
 }
 
 
-/**************************
-**	FreeRTOS FUNCTIONS	 **
-**************************/
-
-/**
- * @brief HTTP server monitor task used to track events of the HTTP server
- * @param pvParameters parameter which can be passed to the task.
- */
-static void httpServer_freeRTOS_monitor(void * parameter)
-{
-	http_server_queue_message_t msg;
-	
-	for(;;)
-	{
-		if(xQueueReceive(http_server_monitor_queue_handle, &msg, portMAX_DELAY))
-		{
-			switch (msg.msgId)
-			{
-				case HTTP_WIFI_CONNECT_INIT:
-					ESP_LOGI(TAG, "HTTP_WIFI_CONNECT_INIT");
-					
-					g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECTING;
-					
-					break;
-					
-				case HTTP_WIFI_CONNECT_SUCCESS:
-					ESP_LOGI(TAG, "HTTP_WIFI_CONNECT_SUCCESS");
-					
-					g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECT_SUCCESS;
-					
-					break;
-
-				case HTTP_WIFI_USER_DISCONNECT:
-					ESP_LOGI(TAG, "HTTP_WIFI_USER_DISCONNECT");
-					
-					g_wifi_connect_status = HTTP_WIFI_STATUS_DISCONNECTED;
-					break;
-					
-				case HTTP_WIFI_CONNECT_FAIL:
-					ESP_LOGI(TAG, "HTTP_WIFI_CONNECT_FAIL");
-					
-					g_wifi_connect_status = HTTP_WIFI_STATUS_CONNECT_FAILED;
-					break;
-					
-				default:
-					break;
-			}
-		}
-	}
-}
-
-/**
- * Setup the FreeRTOS environment for HTTP server.
- */
-static void httpServer_freeRTOS_setup(void)
-{
-	ESP_LOGI(TAG, "httpServer_start: Before CREATE_TASK");
-	// Create HTTP server monitor task
-	CREATE_TASK(&httpServer_freeRTOS_monitor,
-				"httpServer_monitor",
-				HTTP_SERVER_MONITOR_STACK_SIZE,
-				NULL,
-				HTTP_SERVER_MONITOR_PRIORITY,
-#if defined BOARD_ESP32C6
-				NULL);
-#elif defined BOARD_ESP32S3
-				NULL,
-				HTTP_SERVER_MONITOR_CORE);
-#endif
-	
-	ESP_LOGI(TAG, "httpServer_start: Before xQueueCreate");
-	// Create the message queue
-	http_server_monitor_queue_handle = xQueueCreate(3, sizeof(http_server_queue_message_t));
-}
-
-static void httpServer_freeRTOS_endTask(void)
-{
-	if(task_http_server_monitor)
-	{
-		vTaskDelete(task_http_server_monitor);
-		ESP_LOGI(TAG, "httpServer_freeRTOS_endTask: stopping HTTP server monitor");
-		task_http_server_monitor = NULL;
-	}
-}
-
-// Sends a message to the queue
-BaseType_t httpServer_monitor_sendMessage(http_server_state_e msgId)
-{
-	http_server_queue_message_t msg;
-	msg.msgId = msgId;
-	return xQueueSend(http_server_monitor_queue_handle, &msg, portMAX_DELAY);
-}
-
-
 
 /**************************
 **	   APP FUNCTIONS	 **
 **************************/
+
+void httpServer_setup(api_routes_register_fn apiFunction)
+{
+
+	httpServer_setWifiCallback();
+	
+	// Allocate the api routes inside the httpServer code
+	httpServer_setApiRoutes_cb(apiFunction);
+	
+	// Start WiFi
+	wifiApp_start();
+}
+
+
+void httpServer_tryToConnect(char * ssid, char * passwd)
+{
+	wifiApp_setCredentials(ssid, passwd);
+	
+	wifiApp_sendMessage(WIFI_APP_TRY_TO_CONNECT);
+}
 
 /**
  * Functions that get uri handler for when the files are requested when accessing the web page.
@@ -261,9 +171,9 @@ static void httpServer_uri_setFilesHandlersAndRoutes(void)
 
 static void httpServer_uri_setRoutesFromOtherFiles(void)
 {
-	if (httpServer_uri_setApiRoutes_fp)
+	if (httpServer_uri_setApiRoutes_callback)
 	{
-		httpServer_uri_setApiRoutes_fp();
+		httpServer_uri_setApiRoutes_callback();
 	}
 }
  
@@ -277,10 +187,7 @@ void httpServer_start(void)
 		// Initializing and configurating the structure
 		httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 		httpServer_configure(&config);
-		
-		// Create HTTP server monitor task and the message queue
-		httpServer_freeRTOS_setup();
-		
+
 		//Start the httpd server
 		if (httpd_start(&http_server_handle, &config) == ESP_OK)
 		{
@@ -305,6 +212,15 @@ void httpServer_stop(void)
 		ESP_LOGI(TAG, "httpServer_stop: stopping HTTP server");
 		http_server_handle = NULL;
 	}
-	// Stop monitor task
-	httpServer_freeRTOS_endTask();
+}
+
+/**
+ * Callback for starting http server after WiFi signal is ready.
+ */
+static void httpServer_setWifiCallback(void)
+{
+	wifiApp_setCallbacks(
+		httpServer_start,
+		NULL
+	);
 }

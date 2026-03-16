@@ -3,7 +3,7 @@
  * @brief 
  * @details
  * @date 15 de nov. de 2024
- * @author Luiz Carlos
+ * @author Isabella Vecchi
  */
 
 #ifndef MAIN_LIB_LEDRGB_H_
