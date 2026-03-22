@@ -24,7 +24,7 @@
 #define URI_FUNCTION_HANDLER_NAME(uri_handler) http_server_ ## uri_handler ## _handler
 #define BINARY_START(bin,uri_handler,s) #bin###uri_handler###s
 
-#define HTTP_SERVER_MAX_URI_HANDLERS	20
+#define HTTP_SERVER_MAX_URI_HANDLERS	40
 
 /**
  * @brief Server timeout in seconds
@@ -52,7 +52,7 @@
 	X(app_html,				"/app.html",			"text/html"				, _binary_app_html_start, 				_binary_app_html_end			) \
 	X(dados_png,			"/dados.png",			"image/x-icon"			, _binary_dados_png_start, 				_binary_dados_png_end			) \
 	X(favicon_ico,			"/favicon.ico",			"image/x-icon"			, _binary_favicon_ico_start, 			_binary_favicon_ico_end			) \
-	X(historico_html,		"/index.html",			"text/html"				, _binary_index_html_start, 			_binary_index_html_end			) \
+	X(historico_html,		"/historico.html",		"text/html"				, _binary_historico_html_start, 		_binary_historico_html_end			) \
 	X(historico_png,		"/historico.png",		"image/x-icon"			, _binary_historico_png_start, 			_binary_historico_png_end		) \
 	X(home_png,				"/home.png",			"image/x-icon"			, _binary_home_png_start, 				_binary_home_png_end			) \
 	X(index_html,			"/index.html",			"text/html"				, _binary_index_html_start, 			_binary_index_html_end			) \
