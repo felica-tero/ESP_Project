@@ -47,11 +47,34 @@
  * Explanation of how to add more routes using X_MACRO
  */
 #define X_MACRO_HTTP_SERVER_URI_HANDLER_LIST\
-	X(jquery_3_3_1_min_js,	"/jquery-3.3.1.min.js",	"application/javascript", _binary_jquery_3_3_1_min_js_start,	_binary_jquery_3_3_1_min_js_end	) \
-	X(index_html,			"/index.html",			"text/html"				, _binary_index_html_start, 			_binary_index_html_end			) \
 	X(app_css,				"/app.css",				"text/css"				, _binary_app_css_start, 				_binary_app_css_end				) \
 	X(app_js,				"/app.js",				"application/javascript", _binary_app_js_start, 				_binary_app_js_end				) \
-	X(favicon_ico,			"/favicon_ico",			"image/x-icon"			, _binary_favicon_ico_start, 			_binary_favicon_ico_end			)
+	X(app_html,				"/app.html",			"text/html"				, _binary_app_html_start, 				_binary_app_html_end			) \
+	X(dados_png,			"/dados.png",			"image/x-icon"			, _binary_dados_png_start, 				_binary_dados_png_end			) \
+	X(favicon_ico,			"/favicon.ico",			"image/x-icon"			, _binary_favicon_ico_start, 			_binary_favicon_ico_end			) \
+	X(historico_html,		"/index.html",			"text/html"				, _binary_index_html_start, 			_binary_index_html_end			) \
+	X(historico_png,		"/historico.png",		"image/x-icon"			, _binary_historico_png_start, 			_binary_historico_png_end		) \
+	X(home_png,				"/home.png",			"image/x-icon"			, _binary_home_png_start, 				_binary_home_png_end			) \
+	X(index_html,			"/index.html",			"text/html"				, _binary_index_html_start, 			_binary_index_html_end			) \
+	X(jquery_3_3_1_min_js,	"/jquery-3.3.1.min.js",	"application/javascript", _binary_jquery_3_3_1_min_js_start,	_binary_jquery_3_3_1_min_js_end	) \
+	X(irrigaAI_png,			"/irrigaAI.png",		"image/x-icon"			, _binary_IrrigaAI_png_start, 			_binary_IrrigaAI_png_end		) \
+	X(arrow_max_svg,		"/arrow-max.svg",		"image/x-icon"			, _binary_arrow_max_svg_start, 			_binary_arrow_max_svg_end		) \
+	X(arrow_min_svg,		"/arrow-min.svg",		"image/x-icon"			, _binary_arrow_min_svg_start, 			_binary_arrow_min_svg_end		) \
+	X(irrigation_svg,		"/irrigation.svg",		"image/x-icon"			, _binary_irrigation_svg_start, 		_binary_irrigation_svg_end		) \
+	X(animated_1_svg,		"/1.svg",				"image/x-icon"			, _binary_1_svg_start,					_binary_1_svg_end				) \
+	X(animated_2_svg,		"/2.svg",				"image/x-icon"			, _binary_2_svg_start,					_binary_2_svg_end				) \
+	X(animated_3_svg,		"/3.svg",				"image/x-icon"			, _binary_3_svg_start,					_binary_3_svg_end				) \
+	X(animated_4_svg,		"/4.svg",				"image/x-icon"			, _binary_4_svg_start,					_binary_4_svg_end				) \
+	X(animated_5_svg,		"/5.svg",				"image/x-icon"			, _binary_5_svg_start,					_binary_5_svg_end				) \
+	X(animated_6_svg,		"/6.svg",				"image/x-icon"			, _binary_6_svg_start,					_binary_6_svg_end				) \
+	X(animated_7_svg,		"/7.svg",				"image/x-icon"			, _binary_7_svg_start,					_binary_7_svg_end				) \
+	X(animated_8_svg,		"/8.svg",				"image/x-icon"			, _binary_8_svg_start,					_binary_8_svg_end				) \
+	X(animated_9_svg,		"/9.svg",				"image/x-icon"			, _binary_9_svg_start,					_binary_9_svg_end				) \
+	X(animated_10_svg,		"/10.svg",				"image/x-icon"			, _binary_10_svg_start,					_binary_10_svg_end				) \
+	X(animated_11_svg,		"/11.svg",				"image/x-icon"			, _binary_11_svg_start,					_binary_11_svg_end				) \
+	X(animated_12_svg,		"/12.svg",				"image/x-icon"			, _binary_12_svg_start,					_binary_12_svg_end				) \
+	X(animated_13_svg,		"/13.svg",				"image/x-icon"			, _binary_13_svg_start,					_binary_13_svg_end				) \
+	X(weather_sunset_svg,	"/weather_sunset.svg",	"image/x-icon"			, _binary_weather_sunset_svg_start,		_binary_weather_sunset_svg_end	)
 
 /**************************
 **		STRUCTURES		 **
