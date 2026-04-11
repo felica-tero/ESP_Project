@@ -34,6 +34,17 @@
 		<h4 id="ota_update_status"></h4>
 	</div>
 	<hr>
+
+	<div id="WiFiScan">
+		<h2>Redes Disponíveis</h2>
+		<div class="buttons">
+			<input type="button" value="Escanear Redes" onclick="fetchSsidList()" />
+		</div>
+		<ul id="ssid_list" class="ssid-container">
+			<li class="loading">Clique em escanear para buscar redes...</li>
+		</ul>
+	</div>
+	<hr>
 		
 	<div id="WiFiConnect">
 		<h2>ESP32 Conexão WiFi</h2>

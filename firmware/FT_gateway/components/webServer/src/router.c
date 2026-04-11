@@ -130,6 +130,7 @@ esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_update_handler)(httpd_re
     return ESP_OK;
 }
 
+
 /**
  * OTA status handler responds with the firmware update status after the OTA update is started
  * 
@@ -149,6 +150,7 @@ esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_status_handler)(httpd_re
 
 	return ESP_OK;
 }
+
 
 /**
  * wifiConnect.json handler is invoked after the connect button is pressed
@@ -223,6 +225,7 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_status_json)(httpd_r
 	return ESP_OK;
 }
 
+
 /**
  * wifiConnectInfo.json handler updates the web page with connection information.
  * and handles receiving the SSID and password entered by the user
@@ -255,6 +258,7 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(get_wifi_connect_info_json)(httpd
 	return ESP_OK;
 }
 
+
 /**
  * wifiDisconnect.json handler responds by sending a message to WiFi application to disconnect.
  * and handles receiving the SSID and password entered by the user
@@ -270,12 +274,40 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_disconnect_json)(httpd_req_t
 	return ESP_OK;
 }
 
+
+static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(get_ssid_list)(httpd_req_t *req)
+{
+    uint16_t count = 0;
+	uint16_t i;
+	char entry[160];
+	wifiApp_ssidInfo_t * ssidList = wifiApp_getSsidList(&count);
+
+	httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr_chunk(req, "[");
+
+	for (i = 0; i < count; i++)
+	{
+        snprintf(entry, sizeof(entry),
+                 "{\"ssid\":\"%s\",\"rssi\":%d}%s",
+                 (char *)ssidList[i].ssid, ssidList[i].rssi,
+                 (i < count-1) ? "," : "");
+        httpd_resp_sendstr_chunk(req, entry);
+    }
+
+    httpd_resp_sendstr_chunk(req, "]");
+    httpd_resp_sendstr_chunk(req, NULL);
+    free(ssidList);
+
+    return ESP_OK;
+}
+
+
 /**
  * A function that will make the uri's available to the server.
  */
 static void router_uri_register(void)
 {
-	#define X(id, handler, route, method, ansType) \
+	#define X(handler, route, method, ansType) \
 		httpServer_uri_registerHandler(route, method, APP_URI_FUNCTION_HANDLER_NAME(handler));
 		X_MACRO_API_ROUTES_LIST
 	#undef X

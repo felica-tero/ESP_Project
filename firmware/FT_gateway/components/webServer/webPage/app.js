@@ -182,6 +182,46 @@ function startWifiConnectStatusInterval()
 	wifiConnectInterval = setInterval(getWifiConnectStatus, 2800);
 }
 
+
+function fetchSsidList() {
+    const listElement = document.getElementById('ssid_list');
+    listElement.innerHTML = '<li class="loading">Escaneando...</li>';
+
+    $.ajax({
+        url: '/getSsidList.json',
+        type: 'GET', 
+        success: function(data) {
+            listElement.innerHTML = '';
+            if (data.length === 0) {
+                listElement.innerHTML = '<li>Nenhuma rede encontrada</li>';
+                return;
+            }
+            
+            data.forEach(net => {
+                const li = document.createElement('li');
+                li.className = 'ssid-item';
+                li.innerHTML = `<strong>${net.ssid}</strong> <small>(Sinal: ${net.rssi}dBm)</small>`;
+                li.onclick = () => selectSsid(net.ssid);
+                listElement.appendChild(li);
+            });
+        },
+        error: function() {
+            listElement.innerHTML = '<li class="error">Erro ao buscar lista. Verifique a conexão.</li>';
+        }
+    });
+}
+
+
+function selectSsid(ssid) {
+    // Preenche automaticamente o campo de SSID do formulário manual
+    document.getElementById('connect_ssid').value = ssid;
+    document.getElementById('connect_pass').focus();
+    
+    // Feedback visual
+    alert("Selecionado: " + ssid + ". Agora digite a senha.");
+}
+
+
 /**
  * Connect WiFi function called using the SSID and password entered into the text fields.
  */

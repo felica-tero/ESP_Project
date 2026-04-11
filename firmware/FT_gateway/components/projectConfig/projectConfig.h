@@ -53,6 +53,7 @@
 #define WIFI_SSID_LENGTH		32					// IEEE standard maximum
 #define WIFI_PASSWORD_LENGTH	64					// IEEE standard maximum
 #define MAX_CONNECTION_RETRIES	5					// retry numbers on disconnect
+#define MAX_SSID_SCANNED		20					// max numbers of ssid wifi connections that may be displayed on webSite
 
 // DISPLAY OLED
 #if defined BOARD_ESP32C6

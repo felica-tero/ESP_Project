@@ -89,6 +89,7 @@ static const char * sm_wifi_app_state_names[] =
 #undef X
 };
 
+
 /**
  * @brief Structure for the message queue
  * @details
@@ -97,6 +98,25 @@ typedef struct wifi_app_queue_message_s
 {
     sm_wifi_app_state_e  wifiApp_state;
 } wifi_app_queue_message_t;
+
+typedef struct wifiApp_ssidInfo_s
+{
+    uint8_t ssid[WIFI_SSID_LENGTH];		/**< SSID of AP */
+    int8_t  rssi;						/**< Signal strength of AP. Note that in some rare cases where signal strength is very strong, RSSI values can be slightly positive */
+} wifiApp_ssidInfo_t;
+
+/**
+ * Connection status for WiFi
+ */
+typedef enum wifi_connect_status_e
+{
+	NONE = 0,
+	WIFI_STATUS_CONNECTING,
+	WIFI_STATUS_CONNECT_FAILED,
+	WIFI_STATUS_CONNECT_SUCCESS,
+	WIFI_STATUS_DISCONNECTED,
+} wifi_connect_status_t;
+
 
 // Defining a type for every function of the WiFi state machine
 typedef void (*sm_wifi_app_function)(wifi_app_queue_message_t * st);
@@ -115,18 +135,6 @@ typedef struct wifi_fn_callbacks_s
 } wifi_fn_callbacks_t;
 
 
-/**
- * Connection status for WiFi
- */
-typedef enum wifi_connect_status_e
-{
-	NONE = 0,
-	WIFI_STATUS_CONNECTING,
-	WIFI_STATUS_CONNECT_FAILED,
-	WIFI_STATUS_CONNECT_SUCCESS,
-	WIFI_STATUS_DISCONNECTED,
-} wifi_connect_status_t;
-
 /**************************
 **		  GETTERS		 **
 **************************/
@@ -139,6 +147,7 @@ typedef enum wifi_connect_status_e
 uint8_t wifiApp_getConnStatus(void);
 
 esp_err_t wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_netmask, char * out_gateway);
+wifiApp_ssidInfo_t * wifiApp_getSsidList(uint16_t *outCount);
 
 
 /**************************

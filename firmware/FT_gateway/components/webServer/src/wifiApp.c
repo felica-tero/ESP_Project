@@ -161,6 +161,47 @@ esp_err_t wifiApp_getWifiConnectInfo(char * out_ssid, char * out_ip, char * out_
 }
 
 
+wifiApp_ssidInfo_t * wifiApp_getSsidList(uint16_t *outCount)
+{
+    wifi_ap_record_t rec = {0};
+	wifiApp_ssidInfo_t * ssidList = NULL;
+	wifi_scan_config_t scan_cfg =
+	{
+		.ssid=NULL,
+		.bssid=NULL,
+		.channel=0,
+		.show_hidden=false
+	};
+    
+    esp_wifi_scan_start(&scan_cfg, true);
+    esp_wifi_scan_get_ap_num(outCount);
+
+    if (*outCount > 0)
+	{
+		if (*outCount > MAX_SSID_SCANNED)
+			*outCount = MAX_SSID_SCANNED;
+
+        ssidList = calloc(*outCount, sizeof(wifiApp_ssidInfo_t));
+
+        if (!ssidList)
+			*outCount = 0;
+    }
+
+	for (uint8_t index=0; index<*outCount; index++)
+	{
+		if (ESP_OK == esp_wifi_scan_get_ap_record(&rec))
+		{
+			memcpy(ssidList[index].ssid, rec.ssid, WIFI_SSID_LENGTH);
+			ssidList[index].rssi	 = rec.rssi;
+		}
+	}
+
+	esp_wifi_clear_ap_list();
+
+	return ssidList;
+}
+
+
 /**************************
 **		  SETTERS		 **
 **************************/
@@ -266,6 +307,12 @@ static void WIFI_STATE_FUNC_NAME(WIFI_APP_SIGNAL_READY)(wifi_app_queue_message_t
 static void WIFI_STATE_FUNC_NAME(WIFI_APP_TRY_TO_CONNECT)(wifi_app_queue_message_t * st)
 {
 	ESP_LOGI(TAG, "%s", sm_wifi_app_state_names[WIFI_APP_TRY_TO_CONNECT]);
+
+	if (WIFI_STATUS_CONNECT_SUCCESS == connectStatus)
+	{
+		g_retry_number = MAX_CONNECTION_RETRIES;	
+		ESP_ERROR_CHECK(esp_wifi_disconnect());
+	}
 
 	xEventGroupSetBits(wifi_app_event_group, WIFI_APP_TRY_TO_CONNECT_BIT);
 	
