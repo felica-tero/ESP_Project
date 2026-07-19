@@ -50,39 +50,40 @@
 /**
  * ENUM for the Pipe STATE
  */
-typedef enum pipeWork_state
+typedef enum pipework_state
 {
 	OPEN=0,
 	CLOSE,
+	AWAIT,
 	ERROR,
-} pipeWork_state_e;
+} pipework_state_e;
 
-typedef struct pipeWorker_ctrl_s
+typedef struct pipeworker_ctrl_s
 {
-	pipeWork_state_e state;
+	pipework_state_e state;
 	dig_out_info_t config;
-}pipeWorker_ctrl_t;
+}pipeworker_ctrl_t;
 
 
 /**
  * ENUM for Pipe ID
  */
-typedef enum pipeWork_id
+typedef enum pipework_id
 {
 	#define X(ID, PIPE,	pin, pullUp, pullDown, initial_value)\
 			PIPE=ID, 
 		X_MACRO_PIPE_LIST
 	#undef X
-} pipeWork_id_e;
+} pipework_id_e;
 
 
 /**************************
 **		FUNCTIONS		 **
 **************************/
-void pipeWorker_setup(void);
-pipeWork_state_e pipeWorker_askToOpenValve(uint8_t pipeworkId);
-void pipeWorker_closeValve(uint8_t pipeworkId);
-pipeWork_state_e pipeWorker_getState(uint8_t pipeworkId);
+void pipeworker_setup(void);
+pipework_state_e pipeworker_askToOpenValve(uint8_t pipeworkId);
+void pipeworker_closeValve(uint8_t pipeworkId);
+pipework_state_e pipeworker_getState(uint8_t pipeworkId);
 
 
 

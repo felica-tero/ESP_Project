@@ -53,7 +53,7 @@
 #define WIFI_SSID_LENGTH		32					// IEEE standard maximum
 #define WIFI_PASSWORD_LENGTH	64					// IEEE standard maximum
 #define MAX_CONNECTION_RETRIES	5					// retry numbers on disconnect
-#define MAX_SSID_SCANNED		20					// max numbers of ssid wifi connections that may be displayed on webSite
+#define MAX_SSID_SCANNED		32					// max numbers of ssid wifi connections that may be displayed on webSite
 
 // DISPLAY OLED
 #if defined BOARD_ESP32C6
@@ -86,5 +86,10 @@
 #endif
 // QTY of DIG_OUT pins
 #define QTD_DIG_OUTS 	4
+
+
+#define TIME_TO_WAIT_TO_OPEN_VALVE_MS           20U
+#define TIME_TO_RELEASE_VALVE_AFTER_CLOSING_MS  (10U * 1000U)
+#define TIME_TO_RETRY_OPEN_VALVE_MS             (5U * 1000U)
 
 #endif //__PROJECT_CONFIG_LIB__

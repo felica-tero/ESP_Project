@@ -20,12 +20,9 @@
 #include <stdint.h>
 
 // ESP libraries
-#include "esp_log.h"
 
 // Personal libraries
-#include "pipeWorker.h"
-#include "tasks_common.h"
-#include "uart_sensorUmidity.h"
+#include "pipework.h"
 
 
 
@@ -37,8 +34,8 @@
  * 
  */
 #define X_MACRO_IRRIGATION_STATE_LIST	\
-	X(0, FULL_IRRIGATION				) \
-	X(1, LITTLE_IRRIGATION				) 
+	X(0, FULL_IRRIGATION				)\
+	X(1, LITTLE_IRRIGATION				)
 
 
 /**************************
@@ -70,7 +67,7 @@ typedef enum weather_state
  */
 typedef struct pipework_to_irrigate_queue_message_s
 {
-	pipeWork_id_e msgId;
+	uint8_t pipework_id;
 } pipework_to_irrigate_queue_message_t;
 
 
@@ -78,6 +75,10 @@ typedef struct pipework_to_irrigate_queue_message_s
 **		FUNCTIONS		 **
 **************************/
 void irrigator_setup(void);
-BaseType_t irrigator_monitor_sendMessage(pipeWork_id_e pipeWork_id);
+BaseType_t irrigator_monitor_enqueueOpen(uint8_t pipework_id);
+
+void irrigationDecisor_fromSensor(uint8_t pipework_id);
+void irrigationDecisor_client(uint8_t pipework_id, uint8_t valve_desired_state);
+
 
 #endif //__IRRIGATOR_PERSONAL_LIB__

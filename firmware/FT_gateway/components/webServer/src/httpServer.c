@@ -140,6 +140,9 @@ static void httpServer_configure(httpd_config_t * config)
 {	 
 	// Adjust the default priority to 1 less than the WiFi application task
 	config->task_priority = HTTP_SERVER_TASK_PRIORITY;
+
+	// Add route/* for id routes
+	config->uri_match_fn = httpd_uri_match_wildcard;
 	
 	// Bump up the stack size (default is 4096)
 	config->stack_size = HTTP_SERVER_STACK_SIZE;

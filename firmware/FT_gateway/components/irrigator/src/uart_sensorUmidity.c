@@ -23,6 +23,7 @@
 **************************/
 
 	/* Variables */
+static soil_state_e soil_state[QTD_DIG_OUTS] = {0};
 
 
 	/* FreeRTOS Structures */
@@ -42,13 +43,13 @@ void uart_UmidtSensor_setup(void)
 
 }
 
-void uart_UmidtSensor_setDesiredLevel(pipeWork_id_e pipeWork_id, soil_state_e soil_state)
+void uart_UmidtSensor_setDesiredLevel(pipework_id_e pipework_id, soil_state_e soil_state)
 {
-	// 2 bits para pipeWork_id, 3 bits para soil_state
+	// 2 bits para pipework_id, 3 bits para soil_state
 	// uart_UmidtSensor_sendByte()
 }
 
-void uart_UmidtSensor_reqReading(pipeWork_id_e pipeWork_id)
+void uart_UmidtSensor_reqReading(pipework_id_e pipework_id)
 {
 	// toggle output que dispara interrupcao no STM
 }
@@ -69,4 +70,9 @@ uint8_t uart_UmidtSensor_sendByte(uint8_t data)
 {
 	// envia um byte na uart
 	return 0;
+}
+
+uint8_t uart_UmidtSensor_geState(uint8_t pipework_id)
+{
+	return SOLO_MEIO_TERMO;
 }

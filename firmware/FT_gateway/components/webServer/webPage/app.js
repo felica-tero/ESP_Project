@@ -351,34 +351,54 @@ function getLocalTime()
 	});
 }
 
-function acionarBomba() {
-	var bombaStatus = false; // Variável receberá o status atual da bomba do backend
-	var button = document.getElementById("btn-acionar-bomba");
-	var label = document.getElementById("status-bomba-atual");
+function acionarBomba(idBomba) {
+    // Busca dinamicamente os elementos usando o ID passado (0, 1, 2 ou 3)
+    var button = document.getElementById("btn-acionar-bomba-" + idBomba);
+    var label = document.getElementById("status-bomba-atual-" + idBomba);
+    var bombaStatus = "close"; // Valor inicial padrão
 
-	if(button.innerText == "Acionar Bomba"){
-		bombaStatus = false;
-		alert("Bomba acionada!");
-	}
-	if(button.innerText == "Desacionar Bomba"){
-		bombaStatus = true;
-		alert("Bomba desacionada!");
-	}
+    // 1. Define o status com base no texto do botão antes de enviar
+    if (button.innerText === "Acionar Bomba") {
+        bombaStatus = "open";
+    } else if (button.innerText === "Desacionar Bomba") {
+        bombaStatus = "close";
+    }
 
-	if (bombaStatus == false) {
-		button.style.backgroundColor = "#83110C";
-		button.innerText = "Desacionar Bomba";
-		label.style.color = "#04AA6D";
-		label.innerText = "Ligado";
-		bombaStatus = true;
-	} else {
-		button.style.backgroundColor = "#04AA6D";
-		button.innerText = "Acionar Bomba";
-		label.style.color = "#83110C";
-		label.innerText = "Desligado";
-		bombaStatus = false;
-	}
+    // 2. Faz o fetch passando o id da bomba na URL da API
+    fetch(`/turnValveOnOff/${idBomba-1}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            "valve": bombaStatus
+        })
+    })
+    .then(function(response) {
+        if (response.ok) {
+            if (bombaStatus === "open") {
+                button.style.backgroundColor = "#83110C";
+                button.innerText = "Desacionar Bomba";
+                label.style.color = "#04AA6D";
+                label.innerText = "Ligado";
+                alert(`Bomba ${idBomba} acionada!`);
+            } else {
+                button.style.backgroundColor = "#04AA6D";
+                button.innerText = "Acionar Bomba";
+                label.style.color = "#83110C";
+                label.innerText = "Desligado";
+                alert(`Bomba ${idBomba} desacionada!`);
+            }
+        } else {
+            alert(`Erro no servidor ao tentar alterar o status da bomba ${idBomba}.`);
+        }
+    })
+    .catch(function(error) {
+        console.error("Erro na requisição:", error);
+        alert("Não foi possível se comunicar com o servidor.");
+    });
 }
+
 
 const cidade = document.getElementById("cidade");
 cidade.addEventListener("load", mudarCidade());

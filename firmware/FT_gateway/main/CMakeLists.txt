@@ -3,7 +3,7 @@
 
 idf_component_register(
     SRCS 	"main.c"
-    		"ledRGB.c"
+    SRCS 	"ledRGB.c"
 			"dateTimeNTP.c"
     		"displayOled.c"
     INCLUDE_DIRS	"."

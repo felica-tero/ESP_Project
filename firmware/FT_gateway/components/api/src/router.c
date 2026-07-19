@@ -14,6 +14,7 @@
 // C libraries
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 // ESP libraries
 #include "esp_err.h"
@@ -28,10 +29,10 @@
 #include "esp_wifi_types_generic.h"
 
 // Personal libraries
+#include "router.h"
 #include "httpServer.h"
 #include "otaUpdate.h"
-#include "router.h"
-
+#include "irrigator.h"
 
 
 /**************************
@@ -49,7 +50,6 @@ extern esp_netif_t * esp_netif_ap;
 
 // Buffer for LocalTime json string
 char localJSONObjBuffer[BUFFER_MAX_SIZE] = {0};
-char localTimeJSON[BUFFER_MAX_SIZE] = {0};
 
 
 /* Static Functions */
@@ -59,6 +59,8 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_json)(httpd_req_t *r
 static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_status_json)(httpd_req_t *req);
 static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(get_wifi_connect_info_json)(httpd_req_t *req);
 static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_disconnect_json)(httpd_req_t *req);
+static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(get_ssid_list)(httpd_req_t *req);
+static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(turn_valve_on_off)(httpd_req_t *req);
 esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_update_handler)(httpd_req_t *req);
 esp_err_t APP_URI_FUNCTION_HANDLER_NAME(http_server_OTA_status_handler)(httpd_req_t *req);
 static void router_uri_register(void);
@@ -72,9 +74,6 @@ static void router_uri_register(void);
 void router_setup(void)
 {
 	httpServer_setup(router_uri_register);
-
-	// Clean localTimeJSON buffer
-	memset(localTimeJSON, 0, BUFFER_MAX_SIZE);
 }
 
 
@@ -166,7 +165,7 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_json)(httpd_req_t *r
 	ESP_LOGI(TAG, "/wifiConnect.json requested");
 	
 	memset(localJSONObjBuffer,0, BUFFER_MAX_SIZE);
-
+	
 	// Get Request Body
 	lenBodyJson = req->content_len;
 	httpd_req_recv(req, localJSONObjBuffer, lenBodyJson);
@@ -214,6 +213,8 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_json)(httpd_req_t *r
  */
 static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(wifi_connect_status_json)(httpd_req_t *req)
 {	
+	// char localJSONObjBuffer[BUFFER_MAX_SIZE] = {0};
+
 	ESP_LOGI(TAG, "/wifiConnectStatus requested");
 	
 	memset(localJSONObjBuffer, 0, BUFFER_MAX_SIZE);
@@ -297,6 +298,92 @@ static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(get_ssid_list)(httpd_req_t *req)
     httpd_resp_sendstr_chunk(req, "]");
     httpd_resp_sendstr_chunk(req, NULL);
     free(ssidList);
+
+    return ESP_OK;
+}
+
+
+static esp_err_t APP_URI_FUNCTION_HANDLER_NAME(turn_valve_on_off)(httpd_req_t *req)
+{
+    // char localJSONObjBuffer[BUFFER_MAX_SIZE] = {0};
+    size_t lenBodyJson = req->content_len;
+    int valve_id = 0;
+
+    ESP_LOGI(TAG, "/turnValveOnOff/<id> requested. Size: %d", lenBodyJson);
+
+    // Procura pelo padrão no final da string da URI recebida
+    if (sscanf(req->uri, "/turnValveOnOff/%d", &valve_id) == 1) {
+        ESP_LOGI(TAG, "ID extraído da URL: %d", valve_id);
+    } else {
+        ESP_LOGE(TAG, "Não foi possível extrair o ID da URL: %s", req->uri);
+        return ESP_FAIL;
+    }
+    
+    // 1. Proteção contra estouro de buffer
+    if (lenBodyJson >= BUFFER_MAX_SIZE) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "JSON body too large");
+        return ESP_FAIL;
+    }
+
+    // 2. Receber o corpo da requisição
+    // O retorno nos diz quantos bytes foram realmente lidos
+    int ret = httpd_req_recv(req, localJSONObjBuffer, lenBodyJson);
+    if (ret <= 0) {
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            httpd_resp_send_408(req);
+        }
+        return ESP_FAIL;
+    }
+    
+    // Garante que a string está terminada em NULL para o cJSON não se perder
+    localJSONObjBuffer[lenBodyJson] = '\0'; 
+
+    // 3. Parsear o JSON
+    cJSON *body_json = cJSON_Parse(localJSONObjBuffer);
+    if (body_json == NULL) {
+        ESP_LOGE(TAG, "Erro ao parsear o JSON");
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON format");
+        return ESP_FAIL;
+    }
+
+    // 4. Extrair e validar o campo "valve"
+    cJSON *valve_item = cJSON_GetObjectItemCaseSensitive(body_json, "valve");
+    if (cJSON_IsString(valve_item) && (valve_item->valuestring != NULL)) {
+        
+        if (strcmp(valve_item->valuestring, "open") == 0) {
+            ESP_LOGI(TAG, "Comando recebido: ABRIR válvula");
+            // Fazer_Acao_Abrir_Valvula();
+            irrigationDecisor_client(
+                (uint8_t) valve_id,
+                OPEN
+            );
+            
+        } else if (strcmp(valve_item->valuestring, "close") == 0) {
+            ESP_LOGI(TAG, "Comando recebido: FECHAR válvula");
+            // Fazer_Acao_Fechar_Valvula();
+            irrigationDecisor_client(
+                (uint8_t) valve_id,
+                CLOSE
+            );
+            
+        } else {
+            ESP_LOGW(TAG, "Comando desconhecido: %s", valve_item->valuestring);
+        }
+        
+    } else {
+        ESP_LOGE(TAG, "Chave 'valve' nao encontrada ou invalida");
+        cJSON_Delete(body_json); // Sempre limpe o cJSON antes de sair!
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing 'valve' field");
+        return ESP_FAIL;
+    }
+
+    // 5. SEMPRE limpe a memória alocada pelo cJSON
+    cJSON_Delete(body_json);
+
+    // 6. Responder ao cliente (obrigatório no protocolo HTTP)
+    const char *resp_str = "{\"status\":\"success\"}";
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, resp_str);
 
     return ESP_OK;
 }

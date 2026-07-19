@@ -547,11 +547,12 @@ void wifiApp_start(void)
 				NULL,
 				WIFI_APP_TASK_PRIORITY,
 #if defined BOARD_ESP32C6
-				NULL);
+				NULL
 #elif defined BOARD_ESP32S3
 				NULL,
-				WIFI_APP_TASK_CORE);
+				WIFI_APP_TASK_CORE
 #endif
+	);
 }
 
 
