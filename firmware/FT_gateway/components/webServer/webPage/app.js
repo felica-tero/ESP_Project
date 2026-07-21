@@ -4,20 +4,29 @@
 var seconds 	= null;
 var otaTimerVar =  null;
 var wifiConnectInterval = null;
+var ws = null;
 
 /**
  * Initialize functions here.
  */
 $(document).ready(function(){
+	// WebSocket Inicialização
+	iniciarWebSocket();
+
 	getUpdateStatus();
-	// startLocalTimeInterval();
     getConnectInfo();
-	$("#connect_wifi").on("click", function(){
-		checkCredentials();
-	}); 
-	$("#disconnect_wifi").on("click", function(){
-		disconnectWifi();
-	}); 
+
+    // Chamadas diretas de inicialização da tela (substitui os addEventListener("load") com erro)
+    mudarCidade();
+    atualizaTempo();
+    atualizaDadosSensores();
+
+    $("#connect_wifi").on("click", function(){
+        checkCredentials();
+    }); 
+    $("#disconnect_wifi").on("click", function(){
+        disconnectWifi();
+    });
 });
 
 // OTA FIRMWARE UPDATES //
@@ -119,7 +128,7 @@ function otaRebootTimer()
     if (--seconds == 0) 
 	{
         clearTimeout(otaTimerVar);
-        window.location.reload();
+        // window.location.reload();
     } 
 	else 
 	{
@@ -331,6 +340,10 @@ function disconnectWifi()
 	setTimeout("location.reload(true);", 2000);
 }
 
+/**************************
+**			APP			 **
+**************************/
+
 /**
  * Sets the interval for displaying local time.
  */
@@ -355,14 +368,16 @@ function acionarBomba(idBomba) {
     // Busca dinamicamente os elementos usando o ID passado (0, 1, 2 ou 3)
     var button = document.getElementById("btn-acionar-bomba-" + idBomba);
     var label = document.getElementById("status-bomba-atual-" + idBomba);
-    var bombaStatus = "close"; // Valor inicial padrão
+    var bombaStatus = "await"; // Valor inicial padrão
 
     // 1. Define o status com base no texto do botão antes de enviar
     if (button.innerText === "Acionar Bomba") {
         bombaStatus = "open";
     } else if (button.innerText === "Desacionar Bomba") {
         bombaStatus = "close";
-    }
+    } else {
+        bombaStatus = "await";
+	}
 
     // 2. Faz o fetch passando o id da bomba na URL da API
     fetch(`/turnValveOnOff/${idBomba-1}`, {
@@ -375,21 +390,7 @@ function acionarBomba(idBomba) {
         })
     })
     .then(function(response) {
-        if (response.ok) {
-            if (bombaStatus === "open") {
-                button.style.backgroundColor = "#83110C";
-                button.innerText = "Desacionar Bomba";
-                label.style.color = "#04AA6D";
-                label.innerText = "Ligado";
-                alert(`Bomba ${idBomba} acionada!`);
-            } else {
-                button.style.backgroundColor = "#04AA6D";
-                button.innerText = "Acionar Bomba";
-                label.style.color = "#83110C";
-                label.innerText = "Desligado";
-                alert(`Bomba ${idBomba} desacionada!`);
-            }
-        } else {
+        if (!response.ok) {
             alert(`Erro no servidor ao tentar alterar o status da bomba ${idBomba}.`);
         }
     })
@@ -417,47 +418,106 @@ function mudarCidade() {
 }
 
 function atualizaTempo(){
-	var temperatura = document.getElementById("temperatura-atual");
-	var max = document.getElementById("temp-max-dia");
-	var min = document.getElementById("temp-min-dia");
-	var vento = document.getElementById("vento-dia");
-	var umidade = document.getElementById("umidade-dia");
-	var pressao = document.getElementById("pressao-dia");
-	var precipitacao = document.getElementById("precipitacao-dia");
+    var temperatura = document.getElementById("temperatura-atual");
+    var max = document.getElementById("temp-max-dia");
+    var min = document.getElementById("temp-min-dia");
+    var vento = document.getElementById("vento-dia");
+    var umidade = document.getElementById("umidade-dia");
+    var pressao = document.getElementById("pressao-dia");
+    var precipitacao = document.getElementById("precipitacao-dia");
 
-	atualizaAnimacaoTempo();
-	var dados = [25, 30, 20, 15, 60, 1013, 5]; //Colocar variáveis que recebem os dados do backend
+    atualizaAnimacaoTempo();
+    var dados = [25, 30, 20, 15, 60, 1013, 5];
 
-	temperatura.innerText = dados[0] + " °C"; 
-	max.innerText = dados[1] + " °C"; 
-	min.innerText = dados[2] + " °C"; 
-	vento.innerText = dados[3] + " km/h"; 
-	umidade.innerText = dados[4] + " %"; 
-	pressao.innerText = dados[5] + " hPa"; 
-	precipitacao.innerText = dados[6] + " mm"; 
-
-
+    if (temperatura) temperatura.innerText = dados[0] + " °C"; 
+    if (max) max.innerText = dados[1] + " °C"; 
+    if (min) min.innerText = dados[2] + " °C"; 
+    if (vento) vento.innerText = dados[3] + " km/h"; 
+    if (umidade) umidade.innerText = dados[4] + " %"; 
+    if (pressao) pressao.innerText = dados[5] + " hPa"; 
+    if (precipitacao) precipitacao.innerText = dados[6] + " mm"; 
 }
 
 function atualizaAnimacaoTempo(){
-	var tempo = document.getElementById("tempo-atual");
-
-	//condições do tempo:
-	//1-ensolarado 2-encoberto 3-noite 4-nublado-dia 5-nublado-noite
-	//6-pouca-chuva-sol 7-muita-chuva-sol 8-garoa 9-pouca-chuva 10-chuva-moderada
-	//11-muita-chuva 12-tempestade 13-geada
-	var tempobackend = 1; //Colocar variável que recebe condição do tempo do backend
-	tempo.src = "tempo/animated/" + tempobackend +".svg";
+    var tempo = document.getElementById("tempo-atual");
+    if (tempo) {
+        var tempobackend = 1;
+        tempo.src = "tempo/animated/" + tempobackend +".svg";
+    }
 }
 
 function atualizaDadosSensores(){
-	var umidadeSolo = document.getElementById("umidade-solo");
-	var temperaturaSolo = document.getElementById("temperatura-solo");
-	var pressaoSolo = document.getElementById("pressao-solo");
+    // Atualiza com segurança apenas se existir no DOM
+    var umidadeSolo = document.getElementById("umidade-solo-1");
+    if (umidadeSolo) {
+        var dadosSolo = [45, 22, 1010];
+        umidadeSolo.innerText = dadosSolo[0] + " %";
+    }
+}
 
-	var dadosSolo = [45, 22, 1010]; //Colocar variáveis que recebem os dados do backend
+function iniciarWebSocket() {
+    var wsUrl = `ws://${window.location.host}/ws`;
+    console.log("Conectando ao WebSocket:", wsUrl);
 
-	umidadeSolo.innerText = dadosSolo[0] + " %"; 
-	temperaturaSolo.innerText = dadosSolo[1] + " °C"; 
-	pressaoSolo.innerText = dadosSolo[2] + " hPa"; 
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+        console.log("WebSocket Conectado com sucesso!");
+    };
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            console.log("[WebSocket Received]:", data);
+            
+            if (data.id !== undefined && data.status) {
+                atualizarInterfaceBomba(data.id, data.status);
+            }
+        } catch (e) {
+            console.error("Erro no JSON:", e, "Payload bruto:", event.data);
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error("Erro no WebSocket:", error);
+    };
+
+    ws.onclose = (event) => {
+        console.warn("WebSocket fechado. Código:", event.code);
+        // Tenta reconectar após 3 segundos apenas se a página não estiver sendo fechada/recarregada
+        setTimeout(iniciarWebSocket, 3000);
+    };
+}
+
+
+function atualizarInterfaceBomba(id, status) {
+    // Como a bomba no HTML vai de 1 a 4 e o ID do ESP32 vem base 0 (ou vice-versa), ajustamos aqui
+    var button = document.getElementById(`btn-acionar-bomba-${id + 1}`);
+    var label = document.getElementById(`status-bomba-atual-${id + 1}`);
+
+	console.log("atualizarInterfaceBomba");
+
+    if (!button || !label) return;
+
+    if (status === "open")
+	{
+        button.style.backgroundColor = "#e78e89";
+        button.innerText = "Desacionar Bomba";
+        label.style.color = "#04AA6D";
+        label.innerText = "Ligado";
+    }
+	else if (status === "close")
+	{
+        button.style.backgroundColor = "#aaf0d6";
+        button.innerText = "Acionar Bomba";
+        label.style.color = "#83110C";
+        label.innerText = "Desligado";
+    }
+	else if (status === "await")
+	{
+        button.style.backgroundColor = "#a5a5a5";
+        button.innerText = "Na fila...";
+        label.style.color = "#746213";
+        label.innerText = "Aguardando";
+    }
 }

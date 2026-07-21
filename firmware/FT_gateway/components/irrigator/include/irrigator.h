@@ -71,10 +71,13 @@ typedef struct pipework_to_irrigate_queue_message_s
 } pipework_to_irrigate_queue_message_t;
 
 
+typedef void (*nw_update_valve_state_cb)(int bomba_id, const char *status);
+
+
 /**************************
 **		FUNCTIONS		 **
 **************************/
-void irrigator_setup(void);
+void irrigator_setup(nw_update_valve_state_cb nw_update_valve_state_fn);
 BaseType_t irrigator_monitor_enqueueOpen(uint8_t pipework_id);
 
 void irrigationDecisor_fromSensor(uint8_t pipework_id);

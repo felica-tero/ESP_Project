@@ -87,6 +87,21 @@ void httpServer_uri_registerHandler(const char* route, httpd_method_t method, es
 	httpd_register_uri_handler(http_server_handle, &(uri_handler));
 }
 
+// Function to register an webSocket uri.
+httpd_handle_t httpServer_uri_registerWebSocket(const char* route, httpd_method_t method, esp_err_t (*handler)(httpd_req_t *req))
+{
+	httpd_uri_t uri_handler = {
+		.uri 			= route,
+		.method 		= method,
+		.handler		= handler,
+		.user_ctx		= NULL,
+		.is_websocket	= TRUE,
+	};
+	httpd_register_uri_handler(http_server_handle, &(uri_handler));
+
+	return http_server_handle;
+}
+
 
 
 /**************************

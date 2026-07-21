@@ -42,6 +42,8 @@
 // Queue handle used to manipulate the main queue of events
 static QueueHandle_t irrigator_monitor_queue_handle;
 
+static nw_update_valve_state_cb nw_update_valve_state_cb_p = NULL;
+
 
 	/* Static Functions */
 static void irrigator_freeRTOS_setup(void);
@@ -54,8 +56,10 @@ static void irrigator_freeRTOS_monitor(void * parameter);
 **	FreeRTOS FUNCTIONS	 **
 **************************/
 
-void irrigator_setup(void)
+void irrigator_setup(nw_update_valve_state_cb nw_update_valve_state_fn)
 {
+	nw_update_valve_state_cb_p = nw_update_valve_state_fn;
+
 	ESP_LOGI(TAG, "pipeworker_setup");
 	pipeworker_setup();
 	ESP_LOGI(TAG, "irrigator_freeRTOS_setup");
@@ -198,6 +202,7 @@ void irrigationDecisor_client(uint8_t pipework_id, uint8_t valve_desired_state)
 	else if (CLOSE == valve_desired_state)
 	{
 		pipeworker_closeValve(pipework_id);
+		nw_update_valve_state_cb_p(pipework_id, "close");
 	}
 }
 
@@ -227,6 +232,7 @@ static void irrigation_sm(uint8_t pipework_id, irrigation_state_e irrigation_sta
 		default:
 			return;
 	}
+	nw_update_valve_state_cb_p(pipework_id, "await");
 }
 
 /**
@@ -249,6 +255,7 @@ static void irrigator_freeRTOS_monitor(void * parameter)
 			}
 
 			ESP_LOGI(TAG, "Abriu pipeId[%d]", msg.pipework_id);
+			nw_update_valve_state_cb_p(msg.pipework_id, "open");
 			// vTaskDelay(pdMS_TO_TICKS(10000));
 			// ESP_LOGI(TAG, "Aguardou...");
 			

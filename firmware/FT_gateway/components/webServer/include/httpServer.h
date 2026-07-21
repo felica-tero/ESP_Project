@@ -58,24 +58,24 @@
 	X(index_html,			"/index.html",							"text/html"				, _binary_index_html_start, 			_binary_index_html_end			) \
 	X(jquery_3_3_1_min_js,	"/jquery-3.3.1.min.js",					"application/javascript", _binary_jquery_3_3_1_min_js_start,	_binary_jquery_3_3_1_min_js_end	) \
 	X(irrigaAI_png,			"/IrrigaAI.png",						"image/x-icon"			, _binary_IrrigaAI_png_start, 			_binary_IrrigaAI_png_end		) \
-	X(arrow_max_svg,		"/tempo/arrow-max.svg",					"image/x-icon"			, _binary_arrow_max_svg_start, 			_binary_arrow_max_svg_end		) \
-	X(arrow_min_svg,		"/tempo/arrow-min.svg",					"image/x-icon"			, _binary_arrow_min_svg_start, 			_binary_arrow_min_svg_end		) \
-	X(irrigation_svg,		"/tempo/irrigation.svg",				"image/x-icon"			, _binary_irrigation_svg_start, 		_binary_irrigation_svg_end		) \
-	X(umidade_svg,			"/tempo/umidade.svg",					"image/x-icon"			, _binary_umidade_svg_start, 			_binary_umidade_svg_end			) \
-	X(animated_1_svg,		"/tempo/animated/1.svg",				"image/x-icon"			, _binary_1_svg_start,					_binary_1_svg_end				) \
-	X(animated_2_svg,		"/tempo/animated/2.svg",				"image/x-icon"			, _binary_2_svg_start,					_binary_2_svg_end				) \
-	X(animated_3_svg,		"/tempo/animated/3.svg",				"image/x-icon"			, _binary_3_svg_start,					_binary_3_svg_end				) \
-	X(animated_4_svg,		"/tempo/animated/4.svg",				"image/x-icon"			, _binary_4_svg_start,					_binary_4_svg_end				) \
-	X(animated_5_svg,		"/tempo/animated/5.svg",				"image/x-icon"			, _binary_5_svg_start,					_binary_5_svg_end				) \
-	X(animated_6_svg,		"/tempo/animated/6.svg",				"image/x-icon"			, _binary_6_svg_start,					_binary_6_svg_end				) \
-	X(animated_7_svg,		"/tempo/animated/7.svg",				"image/x-icon"			, _binary_7_svg_start,					_binary_7_svg_end				) \
-	X(animated_8_svg,		"/tempo/animated/8.svg",				"image/x-icon"			, _binary_8_svg_start,					_binary_8_svg_end				) \
-	X(animated_9_svg,		"/tempo/animated/9.svg",				"image/x-icon"			, _binary_9_svg_start,					_binary_9_svg_end				) \
-	X(animated_10_svg,		"/tempo/animated/10.svg",				"image/x-icon"			, _binary_10_svg_start,					_binary_10_svg_end				) \
-	X(animated_11_svg,		"/tempo/animated/11.svg",				"image/x-icon"			, _binary_11_svg_start,					_binary_11_svg_end				) \
-	X(animated_12_svg,		"/tempo/animated/12.svg",				"image/x-icon"			, _binary_12_svg_start,					_binary_12_svg_end				) \
-	X(animated_13_svg,		"/tempo/animated/13.svg",				"image/x-icon"			, _binary_13_svg_start,					_binary_13_svg_end				) \
-	X(weather_sunset_svg,	"/tempo/animated/weather_sunset.svg",	"image/x-icon"			, _binary_weather_sunset_svg_start,		_binary_weather_sunset_svg_end	)
+	X(arrow_max_svg,		"/tempo/arrow-max.svg",					"image/svg+xml"			, _binary_arrow_max_svg_start, 			_binary_arrow_max_svg_end		) \
+	X(arrow_min_svg,		"/tempo/arrow-min.svg",					"image/svg+xml"			, _binary_arrow_min_svg_start, 			_binary_arrow_min_svg_end		) \
+	X(irrigation_svg,		"/tempo/irrigation.svg",				"image/svg+xml"			, _binary_irrigation_svg_start, 		_binary_irrigation_svg_end		) \
+	X(umidade_svg,			"/tempo/umidade.svg",					"image/svg+xml"			, _binary_umidade_svg_start, 			_binary_umidade_svg_end			) \
+	X(animated_1_svg,		"/tempo/animated/1.svg",				"image/svg+xml"			, _binary_1_svg_start,					_binary_1_svg_end				) \
+	X(animated_2_svg,		"/tempo/animated/2.svg",				"image/svg+xml"			, _binary_2_svg_start,					_binary_2_svg_end				) \
+	X(animated_3_svg,		"/tempo/animated/3.svg",				"image/svg+xml"			, _binary_3_svg_start,					_binary_3_svg_end				) \
+	X(animated_4_svg,		"/tempo/animated/4.svg",				"image/svg+xml"			, _binary_4_svg_start,					_binary_4_svg_end				) \
+	X(animated_5_svg,		"/tempo/animated/5.svg",				"image/svg+xml"			, _binary_5_svg_start,					_binary_5_svg_end				) \
+	X(animated_6_svg,		"/tempo/animated/6.svg",				"image/svg+xml"			, _binary_6_svg_start,					_binary_6_svg_end				) \
+	X(animated_7_svg,		"/tempo/animated/7.svg",				"image/svg+xml"			, _binary_7_svg_start,					_binary_7_svg_end				) \
+	X(animated_8_svg,		"/tempo/animated/8.svg",				"image/svg+xml"			, _binary_8_svg_start,					_binary_8_svg_end				) \
+	X(animated_9_svg,		"/tempo/animated/9.svg",				"image/svg+xml"			, _binary_9_svg_start,					_binary_9_svg_end				) \
+	X(animated_10_svg,		"/tempo/animated/10.svg",				"image/svg+xml"			, _binary_10_svg_start,					_binary_10_svg_end				) \
+	X(animated_11_svg,		"/tempo/animated/11.svg",				"image/svg+xml"			, _binary_11_svg_start,					_binary_11_svg_end				) \
+	X(animated_12_svg,		"/tempo/animated/12.svg",				"image/svg+xml"			, _binary_12_svg_start,					_binary_12_svg_end				) \
+	X(animated_13_svg,		"/tempo/animated/13.svg",				"image/svg+xml"			, _binary_13_svg_start,					_binary_13_svg_end				) \
+	X(weather_sunset_svg,	"/tempo/animated/weather_sunset.svg",	"image/svg+xml"			, _binary_weather_sunset_svg_start,		_binary_weather_sunset_svg_end	)
 
 /**************************
 **		STRUCTURES		 **
@@ -167,5 +167,6 @@ void httpServer_setApiRoutes_cb(api_routes_register_fn);
  * @param handler the function handler that specifies what happens when the route is accessed.
  */
 void httpServer_uri_registerHandler(const char* route, httpd_method_t method, esp_err_t (*handler)(httpd_req_t *req));
+httpd_handle_t httpServer_uri_registerWebSocket(const char* route, httpd_method_t method, esp_err_t (*handler)(httpd_req_t *req));
 
 #endif /* MAIN_HTTPSERVER_H_ */

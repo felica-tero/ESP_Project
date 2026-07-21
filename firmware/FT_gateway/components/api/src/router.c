@@ -31,6 +31,7 @@
 // Personal libraries
 #include "router.h"
 #include "httpServer.h"
+#include "web_socket.h"
 #include "otaUpdate.h"
 #include "irrigator.h"
 
@@ -398,4 +399,6 @@ static void router_uri_register(void)
 		httpServer_uri_registerHandler(route, method, APP_URI_FUNCTION_HANDLER_NAME(handler));
 		X_MACRO_API_ROUTES_LIST
 	#undef X
+
+    register_ws_route();
 }

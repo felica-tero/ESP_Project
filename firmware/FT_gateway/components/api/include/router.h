@@ -41,12 +41,12 @@
  * @details
  */
 #define X_MACRO_API_ROUTES_LIST \
-	X(wifi_connect_json, 				"/wifiConnect.json",		HTTP_POST, 		"application/json") \
-	X(wifi_connect_status_json,			"/wifiConnectStatus",		HTTP_POST, 		"application/json") \
-	X(get_wifi_connect_info_json,		"/wifiConnectInfo.json",	HTTP_GET,		"application/json") \
-	X(wifi_disconnect_json,				"/wifiDisconnect.json",		HTTP_DELETE,	"application/json") \
-	X(get_ssid_list,					"/getSsidList.json",		HTTP_GET,		"application/json") \
-	X(turn_valve_on_off,				"/turnValveOnOff/*",		HTTP_PUT,		"application/json") \
+	X(wifi_connect_json, 				"/wifiConnect.json",		HTTP_POST, 		"application/json")			\
+	X(wifi_connect_status_json,			"/wifiConnectStatus",		HTTP_POST, 		"application/json")			\
+	X(get_wifi_connect_info_json,		"/wifiConnectInfo.json",	HTTP_GET,		"application/json")			\
+	X(wifi_disconnect_json,				"/wifiDisconnect.json",		HTTP_DELETE,	"application/json")			\
+	X(get_ssid_list,					"/getSsidList.json",		HTTP_GET,		"application/json")			\
+	X(turn_valve_on_off,				"/turnValveOnOff/*",		HTTP_PUT,		"application/json")			\
 	X(http_server_OTA_update_handler,	"/OTAupdate",				HTTP_POST, 		"application/octet-stream") \
 	X(http_server_OTA_status_handler,	"/OTAstatus",				HTTP_POST, 		"application/json")
 

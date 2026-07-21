@@ -32,6 +32,7 @@ static pipeworker_ctrl_t pipeworker[QTD_DIG_OUTS] = {0};
 SemaphoreHandle_t pipework_semaphore = NULL;
 
 	/* Static Functions */
+static void pipeworker_sensorValveClose_cb(uint8_t pipeworkId);
 
 
 /**************************
@@ -85,10 +86,17 @@ void pipeworker_closeValve(uint8_t pipeworkId)
 	// if(pipeworker[pipeworkId].state == OPEN)
 	// {
 		// devolve semaphore
-		ESP_LOGI(TAG, "desligar a valvula deu certo? %s", \
-		hal_gpio_setOutput(pipeworker[pipeworkId].config.gpio_pin, LOW) ? "sim" : "nao");
-		pipeworker[pipeworkId].state = CLOSE;
-		vTaskDelay(pdMS_TO_TICKS(TIME_TO_RELEASE_VALVE_AFTER_CLOSING_MS));
-		xSemaphoreGive(pipework_semaphore);
+		ESP_LOGI(TAG, "desligar a valvula deu certo? %s",
+			hal_gpio_setOutput(pipeworker[pipeworkId].config.gpio_pin, LOW) ? "sim" : "nao"
+		);
+		pipeworker_sensorValveClose_cb(pipeworkId);
 	// }
+}
+
+
+static void pipeworker_sensorValveClose_cb(uint8_t pipeworkId)
+{
+		pipeworker[pipeworkId].state = CLOSE;
+		// vTaskDelay(pdMS_TO_TICKS(TIME_TO_RELEASE_VALVE_AFTER_CLOSING_MS));
+		xSemaphoreGive(pipework_semaphore);
 }

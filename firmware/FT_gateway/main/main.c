@@ -29,6 +29,7 @@
 #include "displayOled.h"
 #endif
 #include "router.h"
+#include "web_socket.h"
 #include "dateTimeNTP.h"
 #include "irrigator.h"
 
@@ -82,7 +83,7 @@ void app_main(void)
 	dateTimeNTP_setup();
 
 	// Irrigator setup
-	irrigator_setup();
+	irrigator_setup(broadcast_bomba_status);
 
 	// Main Infinite Loop
 	#if DISPLAY_OLED_PRESENT == TRUE
