@@ -25,7 +25,6 @@
 #include "irrigator.h"
 #include "uart_sensorUmidity.h"
 #include "projectConfig.h"
-#include "tasks_common.h"
 
 
 
@@ -34,22 +33,11 @@
 **************************/
 
 	/* Variables */
-	const char TAG[] = "irrigator";
-	const uint8_t qtd_digs_out = 0;
-
-	/* FreeRTOS Structures */
-
-// Queue handle used to manipulate the main queue of events
-static QueueHandle_t irrigator_monitor_queue_handle;
-
-static nw_update_valve_state_cb nw_update_valve_state_cb_p = NULL;
+static const char TAG[] = "irrigator";
 
 
 	/* Static Functions */
-static void irrigator_freeRTOS_setup(void);
-static void irrigator_freeRTOS_endTask(void);
 static void irrigation_sm(uint8_t pipeworkId, irrigation_state_e irrigation_state);
-static void irrigator_freeRTOS_monitor(void * parameter);
 
 
 /**************************
@@ -58,45 +46,9 @@ static void irrigator_freeRTOS_monitor(void * parameter);
 
 void irrigator_setup(nw_update_valve_state_cb nw_update_valve_state_fn)
 {
-	nw_update_valve_state_cb_p = nw_update_valve_state_fn;
-
-	ESP_LOGI(TAG, "pipeworker_setup");
-	pipeworker_setup();
+	ESP_LOGI(TAG, "pipework_setup");
+	pipework_setup(nw_update_valve_state_fn);
 	ESP_LOGI(TAG, "irrigator_freeRTOS_setup");
-	irrigator_freeRTOS_setup();
-}
-
-/**
- * Setup the FreeRTOS environment for Irrigator App
- */
-static void irrigator_freeRTOS_setup(void)
-{
-	ESP_LOGI(TAG, "xQueueCreate");
-	
-	// Create the message queue
-	irrigator_monitor_queue_handle = xQueueCreate(QTD_DIG_OUTS, sizeof(pipework_to_irrigate_queue_message_t));
-	
-	ESP_LOGI(TAG, "CREATE_TASK");
-	// Create HTTP server monitor task
-	CREATE_TASK(&irrigator_freeRTOS_monitor,
-				"irrigator_monitor",
-				IRRIGATOR_MONITOR_STACK_SIZE,
-				NULL,
-				IRRIGATOR_MONITOR_PRIORITY,
-#if defined BOARD_ESP32C6
-				NULL);
-#elif defined BOARD_ESP32S3
-				NULL,
-				IRRIGATOR_MONITOR_CORE);
-#endif
-}
-
-// Sends a message to the queue
-BaseType_t irrigator_monitor_enqueueOpen(uint8_t pipework_id)
-{
-	pipework_to_irrigate_queue_message_t msg;
-	msg.pipework_id = pipework_id;
-	return xQueueGenericSend(irrigator_monitor_queue_handle, &msg, portMAX_DELAY, queueSEND_TO_BACK );
 }
 
 
@@ -153,13 +105,13 @@ void irrigationDecisor_fromSensor(uint8_t pipework_id)
 
 		case SOLO_UMIDO:
 			// STOP
-			pipeworker_closeValve(pipework_id);
+			pipework_closeValve(pipework_id);
 		break;
 
 
 		case CAPACIDADE_DE_CAMPO:
 			// STOP
-			pipeworker_closeValve(pipework_id);
+			pipework_closeValve(pipework_id);
 		break;
 
 
@@ -191,7 +143,7 @@ void irrigationDecisor_client(uint8_t pipework_id, uint8_t valve_desired_state)
 
 			case CAPACIDADE_DE_CAMPO:
 				// STOP
-				pipeworker_closeValve(pipework_id);
+				pipework_closeValve(pipework_id);
 				break;
 			
 			
@@ -201,8 +153,7 @@ void irrigationDecisor_client(uint8_t pipework_id, uint8_t valve_desired_state)
 	}
 	else if (CLOSE == valve_desired_state)
 	{
-		pipeworker_closeValve(pipework_id);
-		nw_update_valve_state_cb_p(pipework_id, "close");
+		pipework_closeValve(pipework_id);
 	}
 }
 
@@ -215,54 +166,19 @@ static void irrigation_sm(uint8_t pipework_id, irrigation_state_e irrigation_sta
 	{
 		case FULL_IRRIGATION:
 			uart_UmidtSensor_setDesiredLevel(pipework_id, CAPACIDADE_DE_CAMPO);
-			if (AWAIT != pipeworker_getState(pipework_id)
-			&&	OPEN  != pipeworker_getState(pipework_id))
-				irrigator_monitor_enqueueOpen(pipework_id);
+			if (CLOSE == pipework_getState(pipework_id))
+				pipework_monitor_enqueueOpen(pipework_id);
 		break;
 		
 
 		case LITTLE_IRRIGATION:
 			uart_UmidtSensor_setDesiredLevel(pipework_id, SOLO_MEIO_TERMO);
-			if (AWAIT != pipeworker_getState(pipework_id)
-			&&	OPEN  != pipeworker_getState(pipework_id))
-				irrigator_monitor_enqueueOpen(pipework_id);
+			if (CLOSE == pipework_getState(pipework_id))
+				pipework_monitor_enqueueOpen(pipework_id);
 		break;
 
 		
 		default:
 			return;
-	}
-	nw_update_valve_state_cb_p(pipework_id, "await");
-}
-
-/**
- * @brief Dut Ctrl monitor task used to track events of the Irrigation Ctrl
- * @param pvParameters parameter which can be passed to the task.
- */
-static void irrigator_freeRTOS_monitor(void * parameter)
-{
-	pipework_to_irrigate_queue_message_t msg;
-	
-	for(;;)
-	{
-		if(xQueueReceive(irrigator_monitor_queue_handle, &msg, portMAX_DELAY))
-		{
-			ESP_LOGI(TAG, "quem quer abrir eh esse: pipeId[%d]", msg.pipework_id);
-			// request resource semaphore
-			while(OPEN != pipeworker_askToOpenValve(msg.pipework_id))
-			{
-				vTaskDelay(pdMS_TO_TICKS(TIME_TO_RETRY_OPEN_VALVE_MS));
-			}
-
-			ESP_LOGI(TAG, "Abriu pipeId[%d]", msg.pipework_id);
-			nw_update_valve_state_cb_p(msg.pipework_id, "open");
-			// vTaskDelay(pdMS_TO_TICKS(10000));
-			// ESP_LOGI(TAG, "Aguardou...");
-			
-			// // open valve
-			// pipeworker_closeValve(msg.pipework_id);
-			// ESP_LOGI(TAG, "Fechou pipeId[%d]", msg.pipework_id);
-
-		}
 	}
 }

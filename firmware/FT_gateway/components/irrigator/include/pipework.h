@@ -58,11 +58,11 @@ typedef enum pipework_state
 	ERROR,
 } pipework_state_e;
 
-typedef struct pipeworker_ctrl_s
+typedef struct pipework_ctrl_s
 {
 	pipework_state_e state;
 	dig_out_info_t config;
-}pipeworker_ctrl_t;
+}pipework_ctrl_t;
 
 
 /**
@@ -77,13 +77,25 @@ typedef enum pipework_id
 } pipework_id_e;
 
 
+/**
+ * Structure for the PIPE to irrigate QUEUE
+ */
+typedef struct pipework_to_irrigate_queue_message_s
+{
+	uint8_t pipework_id;
+} pipework_to_irrigate_queue_message_t;
+
+
+typedef void (*nw_update_valve_state_cb)(int bomba_id, const char *status);
+
+
 /**************************
 **		FUNCTIONS		 **
 **************************/
-void pipeworker_setup(void);
-pipework_state_e pipeworker_askToOpenValve(uint8_t pipeworkId);
-void pipeworker_closeValve(uint8_t pipeworkId);
-pipework_state_e pipeworker_getState(uint8_t pipeworkId);
+void pipework_setup(nw_update_valve_state_cb nw_update_valve_state_fn);
+BaseType_t pipework_monitor_enqueueOpen(uint8_t pipework_id);
+void pipework_closeValve(uint8_t pipeworkId);
+pipework_state_e pipework_getState(uint8_t pipeworkId);
 
 
 

@@ -88,7 +88,6 @@
 #define QTD_DIG_OUTS 	4
 
 
-#define TIME_TO_WAIT_TO_OPEN_VALVE_MS           20U
 #define TIME_TO_RELEASE_VALVE_AFTER_CLOSING_MS  (10U * 1000U)
 #define TIME_TO_RETRY_OPEN_VALVE_MS             (5U * 1000U)
 

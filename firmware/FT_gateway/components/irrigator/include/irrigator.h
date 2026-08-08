@@ -62,23 +62,11 @@ typedef enum weather_state
 	TO_RAIN,
 } weather_state_e;
 
-/**
- * Structure for the PIPE to irrigate QUEUE
- */
-typedef struct pipework_to_irrigate_queue_message_s
-{
-	uint8_t pipework_id;
-} pipework_to_irrigate_queue_message_t;
-
-
-typedef void (*nw_update_valve_state_cb)(int bomba_id, const char *status);
-
 
 /**************************
 **		FUNCTIONS		 **
 **************************/
 void irrigator_setup(nw_update_valve_state_cb nw_update_valve_state_fn);
-BaseType_t irrigator_monitor_enqueueOpen(uint8_t pipework_id);
 
 void irrigationDecisor_fromSensor(uint8_t pipework_id);
 void irrigationDecisor_client(uint8_t pipework_id, uint8_t valve_desired_state);
